@@ -29,10 +29,11 @@ using System.Reflection;
 using System.Security.Cryptography;
 using Microsoft.CSharp;
 using Microsoft.VisualBasic;
+using System.Diagnostics;
 
 namespace Server
 {
-	public class ScriptCompiler
+	public static class ScriptCompiler
 	{
 		private static Assembly[] m_Assemblies;
 
@@ -77,28 +78,32 @@ namespace Server
 			return list.ToArray();
 		}
 
-		public static string GetDefines()
+		public static string GetCompilerOptions( bool debug )
 		{
 			StringBuilder sb = null;
 
+			if( !debug )
+				AppendCompilerOption( ref sb, "/optimize" );
+
 #if MONO
-			AppendDefine( ref sb, "/d:MONO" );
+			AppendCompilerOption( ref sb, "/d:MONO" );
 #endif
 
-			//These two defines are legacy, ie, depreciated.
 			if( Core.Is64Bit )
-				AppendDefine( ref sb, "/d:x64" );
+				AppendCompilerOption( ref sb, "/d:x64" );
+			
+#if NEWTIMERS
+			AppendCompilerOption(ref sb, "/d:NEWTIMERS");
+#endif
 
-			AppendDefine( ref sb, "/d:Framework_2_0" );
-
-#if Framework_3_5
-			AppendDefine( ref sb, "/d:Framework_3_5" );
+#if NEWPARENT
+			AppendCompilerOption(ref sb, "/d:NEWPARENT");
 #endif
 
 			return (sb == null ? null : sb.ToString());
 		}
 
-		public static void AppendDefine( ref StringBuilder sb, string define )
+		private static void AppendCompilerOption( ref StringBuilder sb, string define )
 		{
 			if( sb == null )
 				sb = new StringBuilder();
@@ -126,6 +131,7 @@ namespace Server
 					}
 
 					bin.Write( debug );
+					bin.Write( Core.Version.ToString() );
 
 					ms.Position = 0;
 
@@ -211,20 +217,16 @@ namespace Server
 
 			DeleteFiles( "Scripts.CS*.dll" );
 
-#if Framework_3_5
-			using ( CSharpCodeProvider provider = new CSharpCodeProvider( new Dictionary<string, string>() { { "CompilerVersion", "v3.5" } } ) )
-#else
 			using ( CSharpCodeProvider provider = new CSharpCodeProvider() )
-#endif
 			{
 				string path = GetUnusedPath( "Scripts.CS" );
 
 				CompilerParameters parms = new CompilerParameters( GetReferenceAssemblies(), path, debug );
 
-				string defines = GetDefines();
+				string options = GetCompilerOptions( debug );
 
-				if( defines != null )
-					parms.CompilerOptions = defines;
+				if( options != null )
+					parms.CompilerOptions = options;
 
 				if( Core.HaltOnWarning )
 					parms.WarningLevel = 4;
@@ -354,20 +356,17 @@ namespace Server
 			}
 
 			DeleteFiles( "Scripts.VB*.dll" );
-#if Framework_3_5
-			using ( VBCodeProvider provider = new VBCodeProvider( new Dictionary<string, string>() { { "CompilerVersion", "v3.5" } } ) )
-#else
+
 			using ( VBCodeProvider provider = new VBCodeProvider() )
-#endif
 			{
 				string path = GetUnusedPath( "Scripts.VB" );
 
 				CompilerParameters parms = new CompilerParameters( GetReferenceAssemblies(), path, debug );
 
-				string defines = GetDefines();
+				string options = GetCompilerOptions( debug );
 
-				if( defines != null )
-					parms.CompilerOptions = String.Format( "/D:{0}", defines );
+				if( options != null )
+					parms.CompilerOptions = options;
 
 				if( Core.HaltOnWarning )
 					parms.WarningLevel = 4;
@@ -418,7 +417,7 @@ namespace Server
 				{
 					string file = e.FileName;
 
-					// Rediculous. FileName is null if the warning/error is internally generated in csc.
+					// Ridiculous. FileName is null if the warning/error is internally generated in csc.
 					if ( string.IsNullOrEmpty( file ) ) {
 						Console.WriteLine( "ScriptCompiler: {0}: {1}", e.ErrorNumber, e.ErrorText );
 						continue;
@@ -461,7 +460,7 @@ namespace Server
 					Utility.PushColor( ConsoleColor.DarkYellow );
 
 					foreach( CompilerError e in list )
-						Console.WriteLine( "    {0}: Line {1}: {3}", e.ErrorNumber, e.Line, e.Column, e.ErrorText );
+						Console.WriteLine( "    {0}: Line {1}: {2}", e.ErrorNumber, e.Line, e.ErrorText );
 
 					Utility.PopColor();
 				}
@@ -486,7 +485,7 @@ namespace Server
 					Utility.PushColor( ConsoleColor.DarkRed );
 
 					foreach( CompilerError e in list )
-						Console.WriteLine( "    {0}: Line {1}: {3}", e.ErrorNumber, e.Line, e.Column, e.ErrorText );
+						Console.WriteLine( "    {0}: Line {1}: {2}", e.ErrorNumber, e.Line, e.ErrorText );
 
 					Utility.PopColor();
 				}
@@ -527,15 +526,6 @@ namespace Server
 		}
 
 		private delegate CompilerResults Compiler( bool debug );
-
-		private void LoadScriptedAssembly( List<Assembly> assemblies, string fileName, Compiler compiler, bool debug )
-		{
-
-
-			if( File.Exists( fileName ) )
-			{
-			}
-		}
 
 		public static bool Compile()
 		{
@@ -598,8 +588,14 @@ namespace Server
 			m_Assemblies = assemblies.ToArray();
 
 			Console.Write( "Scripts: Verifying..." );
+
+			Stopwatch watch = Stopwatch.StartNew();
+			
 			Core.VerifySerialization();
-			Console.WriteLine( "done ({0} items, {1} mobiles)", Core.ScriptItems, Core.ScriptMobiles );
+			
+			watch.Stop();
+
+			Console.WriteLine("done ({0} items, {1} mobiles) ({2:F2} seconds)", Core.ScriptItems, Core.ScriptMobiles, watch.Elapsed.TotalSeconds);
 
 			return true;
 		}

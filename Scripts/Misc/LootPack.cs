@@ -1,9 +1,9 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Items;
 using Server.Mobiles;
-using System.Collections.Generic;
 
 namespace Server
 {
@@ -78,7 +78,7 @@ namespace Server
 				{
 					checkLuck = false;
 
-					if ( LootPack.CheckLuck( luckChance ) )
+					if( LootPack.CheckLuck( luckChance ) )
 						shouldAdd = ( entry.Chance > Utility.Random( 10000 ) );
 				}
 
@@ -237,6 +237,17 @@ namespace Server
 				new LootPackItem( typeof( BaseShield ), 52 ),
 				new LootPackItem( typeof( BaseJewel ), 207 )
 			};
+		#endregion
+
+		#region ML definitions
+		public static readonly LootPack MlRich = new LootPack( new LootPackEntry[]
+			{
+				new LootPackEntry(  true, Gold,						100.00, "4d50+450" ),
+				new LootPackEntry( false, AosMagicItemsRichType1,	100.00, 1, 3, 0, 75 ),
+				new LootPackEntry( false, AosMagicItemsRichType1,	 80.00, 1, 3, 0, 75 ),
+				new LootPackEntry( false, AosMagicItemsRichType1,	 60.00, 1, 5, 0, 100 ),
+				new LootPackEntry( false, Instruments,				  1.00, 1 )
+			} );
 		#endregion
 
 		#region SE definitions
@@ -457,13 +468,13 @@ namespace Server
 		#endregion
 
 		#region Generic accessors
-		public static LootPack Poor{ get{ return Core.AOS ? AosPoor : OldPoor; } }
-		public static LootPack Meager{ get{ return Core.AOS ? AosMeager : OldMeager; } }
-		public static LootPack Average{ get{ return Core.AOS ? AosAverage : OldAverage; } }
-		public static LootPack Rich{ get{ return Core.AOS ? AosRich : OldRich; } }
-		public static LootPack FilthyRich{ get{ return Core.AOS ? AosFilthyRich : OldFilthyRich; } }
-		public static LootPack UltraRich{ get{ return Core.AOS ? AosUltraRich : OldUltraRich; } }
-		public static LootPack SuperBoss{ get{ return Core.AOS ? AosSuperBoss : OldSuperBoss; } }
+		public static LootPack Poor{ get{ return Core.SE ? SePoor : Core.AOS ? AosPoor : OldPoor; } }
+		public static LootPack Meager{ get{ return Core.SE ? SeMeager : Core.AOS ? AosMeager : OldMeager; } }
+		public static LootPack Average{ get{ return Core.SE ? SeAverage : Core.AOS ? AosAverage : OldAverage; } }
+		public static LootPack Rich{ get{ return Core.SE ? SeRich : Core.AOS ? AosRich : OldRich; } }
+		public static LootPack FilthyRich{ get{ return Core.SE ? SeFilthyRich : Core.AOS ? AosFilthyRich : OldFilthyRich; } }
+		public static LootPack UltraRich{ get{ return Core.SE ? SeUltraRich : Core.AOS ? AosUltraRich : OldUltraRich; } }
+		public static LootPack SuperBoss{ get{ return Core.SE ? SeSuperBoss : Core.AOS ? AosSuperBoss : OldSuperBoss; } }
 		#endregion
 
 		public static readonly LootPack LowScrolls = new LootPack( new LootPackEntry[]
@@ -490,6 +501,21 @@ namespace Server
 			{
 				new LootPackEntry( false, PotionItems,		100.00, 1 )
 			} );
+
+		/*
+		// TODO: Uncomment once added
+		#region Mondain's Legacy
+		public static readonly LootPackItem[] ParrotItem = new LootPackItem[]
+			{
+				new LootPackItem( typeof( ParrotItem ), 1 )
+			};
+
+		public static readonly LootPack Parrot = new LootPack( new LootPackEntry[]
+			{
+				new LootPackEntry( false, ParrotItem, 10.00, 1 )
+			} );
+		#endregion
+		*/
 	}
 
 	public class LootPackEntry
@@ -550,6 +576,13 @@ namespace Server
 			return ( m.Map == Map.Tokuno );
 		}
 
+		#region Mondain's Legacy
+		private static bool IsMondain( Mobile m )
+		{
+			return MondainsLegacy.IsMLRegion( m.Region );
+		}
+		#endregion
+
 		public Item Construct( Mobile from, int luckChance, bool spawning )
 		{
 			if ( m_AtSpawnTime != spawning )
@@ -567,7 +600,7 @@ namespace Server
 				LootPackItem item = m_Items[i];
 
 				if ( rnd < item.Chance )
-					return Mutate( from, luckChance, item.Construct( IsInTokuno( from ) ) );
+					return Mutate( from, luckChance, item.Construct( IsInTokuno( from ), IsMondain( from ) ) );
 
 				rnd -= item.Chance;
 			}
@@ -804,7 +837,7 @@ namespace Server
 				new Type[] // high
 				{
 					typeof( VengefulSpiritScroll ),		typeof( VampiricEmbraceScroll ), typeof( ExorcismScroll )
-				} : 
+				} :
 				new Type[] // high
 				{
 					typeof( VengefulSpiritScroll ),		typeof( VampiricEmbraceScroll )
@@ -839,18 +872,18 @@ namespace Server
 			return Loot.RandomScroll( minCircle * 8, (maxCircle * 8) + 7, SpellbookType.Regular );
 		}
 
-		public Item Construct( bool inTokuno )
+		public Item Construct( bool inTokuno, bool isMondain )
 		{
 			try
 			{
 				Item item;
 
 				if ( m_Type == typeof( BaseRanged ) )
-					item = Loot.RandomRangedWeapon( inTokuno );
+					item = Loot.RandomRangedWeapon( inTokuno, isMondain );
 				else if ( m_Type == typeof( BaseWeapon ) )
-					item = Loot.RandomWeapon( inTokuno );
+					item = Loot.RandomWeapon( inTokuno, isMondain );
 				else if ( m_Type == typeof( BaseArmor ) )
-					item = Loot.RandomArmorOrHat( inTokuno );
+					item = Loot.RandomArmorOrHat( inTokuno, isMondain );
 				else if ( m_Type == typeof( BaseShield ) )
 					item = Loot.RandomShield();
 				else if ( m_Type == typeof( BaseJewel ) )

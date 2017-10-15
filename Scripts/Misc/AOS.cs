@@ -3,8 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using Server;
 using Server.Items;
+using Server.Misc;
 using Server.Mobiles;
 using Server.Network;
+using Server.Spells;
+using Server.Spells.Fifth;
+using Server.Spells.Seventh;
+using Server.Spells.Ninjitsu;
 
 namespace Server
 {
@@ -35,20 +40,25 @@ namespace Server
 
 		public static int Damage( Mobile m, Mobile from, int damage, int phys, int fire, int cold, int pois, int nrgy )
 		{
-			return Damage( m, from, damage, false, phys, fire, cold, pois, nrgy, false );
+			return Damage( m, from, damage, false, phys, fire, cold, pois, nrgy, 0, 0, false, false, false );
+		}
+
+		public static int Damage( Mobile m, Mobile from, int damage, int phys, int fire, int cold, int pois, int nrgy, int chaos )
+		{
+			return Damage( m, from, damage, false, phys, fire, cold, pois, nrgy, chaos, 0, false, false, false );
 		}
 
 		public static int Damage( Mobile m, Mobile from, int damage, bool ignoreArmor, int phys, int fire, int cold, int pois, int nrgy )
 		{
-			return Damage( m, from, damage, ignoreArmor, phys, fire, cold, pois, nrgy, false );
+			return Damage( m, from, damage, ignoreArmor, phys, fire, cold, pois, nrgy, 0, 0, false, false, false );
 		}
 
 		public static int Damage( Mobile m, Mobile from, int damage, int phys, int fire, int cold, int pois, int nrgy, bool keepAlive )
 		{
-			return Damage( m, from, damage, false, phys, fire, cold, pois, nrgy, keepAlive );
+			return Damage( m, from, damage, false, phys, fire, cold, pois, nrgy, 0, 0, keepAlive, false, false );
 		}
 
-		public static int Damage( Mobile m, Mobile from, int damage, bool ignoreArmor, int phys, int fire, int cold, int pois, int nrgy, bool keepAlive )
+		public static int Damage( Mobile m, Mobile from, int damage, bool ignoreArmor, int phys, int fire, int cold, int pois, int nrgy, int chaos, int direct, bool keepAlive, bool archer, bool deathStrike )
 		{
 			if( m == null || m.Deleted || !m.Alive || damage <= 0 )
 				return 0;
@@ -67,6 +77,25 @@ namespace Server
 			Fix( ref cold );
 			Fix( ref pois );
 			Fix( ref nrgy );
+			Fix( ref chaos );
+			Fix( ref direct );
+
+			if ( Core.ML && chaos > 0 )
+			{
+				switch ( Utility.Random( 5 ) )
+				{
+					case 0: phys += chaos; break;
+					case 1: fire += chaos; break;
+					case 2: cold += chaos; break;
+					case 3: pois += chaos; break;
+					case 4: nrgy += chaos; break;
+				}
+			}
+
+			BaseQuiver quiver = null;
+			
+			if ( archer && from != null )
+				quiver = from.FindItemOnLayer( Layer.Cloak ) as BaseQuiver;
 
 			int totalDamage;
 
@@ -87,16 +116,33 @@ namespace Server
 
 				totalDamage /= 10000;
 
+				if ( Core.ML )
+				{
+					totalDamage += damage * direct / 100;
+
+					if ( quiver != null )
+						totalDamage += totalDamage * quiver.DamageIncrease / 100;
+				}
+
 				if( totalDamage < 1 )
 					totalDamage = 1;
 			}
 			else if( Core.ML && m is PlayerMobile && from is PlayerMobile )
 			{
-				totalDamage = Math.Min( damage, 35 );	//Direct Damage cap of 35
+				if ( quiver != null )
+					damage += damage * quiver.DamageIncrease / 100;
+
+				if ( !deathStrike )
+					totalDamage = Math.Min( damage, 35 );	// Direct Damage cap of 35
+				else
+					totalDamage = Math.Min( damage, 70 );	// Direct Damage cap of 70
 			}
 			else
 			{
 				totalDamage = damage;
+
+				if ( Core.ML && quiver != null )
+					totalDamage += totalDamage * quiver.DamageIncrease / 100;
 			}
 
 			#region Dragon Barding
@@ -159,6 +205,30 @@ namespace Server
 		{
 			return (input * percent) / 100;
 		}
+
+		public static int GetStatus( Mobile from, int index )
+		{
+			switch ( index )
+			{
+				// TODO: Account for buffs/debuffs
+				case 0: return from.GetMaxResistance( ResistanceType.Physical );
+				case 1: return from.GetMaxResistance( ResistanceType.Fire );
+				case 2: return from.GetMaxResistance( ResistanceType.Cold );
+				case 3: return from.GetMaxResistance( ResistanceType.Poison );
+				case 4: return from.GetMaxResistance( ResistanceType.Energy );
+				case 5: return AosAttributes.GetValue( from, AosAttribute.DefendChance );
+				case 6: return 45;
+				case 7: return AosAttributes.GetValue( from, AosAttribute.AttackChance );
+				case 8: return AosAttributes.GetValue( from, AosAttribute.WeaponSpeed );
+				case 9: return AosAttributes.GetValue( from, AosAttribute.WeaponDamage );
+				case 10: return AosAttributes.GetValue( from, AosAttribute.LowerRegCost );
+				case 11: return AosAttributes.GetValue( from, AosAttribute.SpellDamage );
+				case 12: return AosAttributes.GetValue( from, AosAttribute.CastRecovery );
+				case 13: return AosAttributes.GetValue( from, AosAttribute.CastSpeed );
+				case 14: return AosAttributes.GetValue( from, AosAttribute.LowerManaCost );
+				default: return 0;
+			}
+		}
 	}
 
 	[Flags]
@@ -186,7 +256,8 @@ namespace Server
 		EnhancePotions=0x00080000,
 		Luck=0x00100000,
 		SpellChanneling=0x00200000,
-		NightSight=0x00400000
+		NightSight=0x00400000,
+		IncreasedKarmaLoss=0x00800000
 	}
 
 	public sealed class AosAttributes : BaseAttributes
@@ -259,6 +330,20 @@ namespace Server
 					if( attrs != null )
 						value += attrs[attribute];
 				}
+				else if( obj is BaseQuiver )
+				{
+					AosAttributes attrs = ((BaseQuiver)obj).Attributes;
+
+					if( attrs != null )
+						value += attrs[attribute];
+				}
+				else if ( obj is BaseTalisman )
+				{
+					AosAttributes attrs = ((BaseTalisman)obj).Attributes;
+
+					if (attrs != null)
+						value += attrs[attribute];
+				}
 			}
 
 			return value;
@@ -273,6 +358,40 @@ namespace Server
 		public override string ToString()
 		{
 			return "...";
+		}
+
+		public void AddStatBonuses( Mobile to )
+		{
+			int strBonus = BonusStr;
+			int dexBonus = BonusDex;
+			int intBonus = BonusInt;
+
+			if ( strBonus != 0 || dexBonus != 0 || intBonus != 0 )
+			{
+				string modName = Owner.Serial.ToString();
+
+				if ( strBonus != 0 )
+					to.AddStatMod( new StatMod( StatType.Str, modName + "Str", strBonus, TimeSpan.Zero ) );
+
+				if ( dexBonus != 0 )
+					to.AddStatMod( new StatMod( StatType.Dex, modName + "Dex", dexBonus, TimeSpan.Zero ) );
+
+				if ( intBonus != 0 )
+					to.AddStatMod( new StatMod( StatType.Int, modName + "Int", intBonus, TimeSpan.Zero ) );
+			}
+
+			to.CheckStatTimers();
+		}
+
+		public void RemoveStatBonuses( Mobile from )
+		{
+			string modName = Owner.Serial.ToString();
+
+			from.RemoveStatMod( modName + "Str" );
+			from.RemoveStatMod( modName + "Dex" );
+			from.RemoveStatMod( modName + "Int" );
+
+			from.CheckStatTimers();
 		}
 
 		[CommandProperty( AccessLevel.GameMaster )]
@@ -343,6 +462,9 @@ namespace Server
 
 		[CommandProperty( AccessLevel.GameMaster )]
 		public int NightSight { get { return this[AosAttribute.NightSight]; } set { this[AosAttribute.NightSight] = value; } }
+
+		[CommandProperty( AccessLevel.GameMaster )]
+		public int IncreasedKarmaLoss { get { return this[AosAttribute.IncreasedKarmaLoss]; } set { this[AosAttribute.IncreasedKarmaLoss] = value; } }
 	}
 
 	[Flags]
@@ -407,6 +529,13 @@ namespace Server
 				if( obj is BaseWeapon )
 				{
 					AosWeaponAttributes attrs = ((BaseWeapon)obj).WeaponAttributes;
+
+					if( attrs != null )
+						value += attrs[attribute];
+				}
+				else if ( obj is ElvenGlasses )
+				{
+					AosWeaponAttributes attrs = ((ElvenGlasses)obj).WeaponAttributes;
 
 					if( attrs != null )
 						value += attrs[attribute];
@@ -613,7 +742,18 @@ namespace Server
 				if( !GetValues( i, out skill, out bonus ) )
 					continue;
 
-				list.Add( 1060451 + i, "#{0}\t{1}", 1044060 + (int)skill, bonus );
+				list.Add( 1060451 + i, "#{0}\t{1}", GetLabel( skill ), bonus );
+			}
+		}
+
+		public static int GetLabel( SkillName skill )
+		{
+			switch ( skill )
+			{
+				case SkillName.EvalInt: return 1002070; // Evaluate Intelligence
+				case SkillName.Forensics: return 1002078; // Forensic Evaluation
+				case SkillName.Lockpicking: return 1002097; // Lockpicking
+				default: return 1044060 + (int)skill;
 			}
 		}
 
@@ -644,9 +784,14 @@ namespace Server
 			if( m_Mods == null )
 				return;
 
-			for( int i = 0; i < m_Mods.Count; ++i )
+			for( int i = 0; i < m_Mods.Count; ++i ) {
+
+				Mobile m = m_Mods[i].Owner;
 				m_Mods[i].Remove();
 
+				if ( Core.ML )
+					CheckCancelMorph ( m );
+			}
 			m_Mods = null;
 		}
 
@@ -728,6 +873,53 @@ namespace Server
 			return "...";
 		}
 
+		public void CheckCancelMorph ( Mobile m )
+		{
+			if ( m == null )
+				return;
+
+			double minSkill, maxSkill;
+
+			AnimalFormContext acontext = AnimalForm.GetContext( m );
+			TransformContext context = TransformationSpellHelper.GetContext( m );
+
+			if ( context != null ) {
+				Spell spell = context.Spell as Spell;
+				spell.GetCastSkills ( out minSkill, out maxSkill );
+				if ( m.Skills[spell.CastSkill].Value < minSkill )
+					TransformationSpellHelper.RemoveContext( m, context, true );
+			}
+			if ( acontext != null ) {
+				int i;
+				for ( i = 0; i < AnimalForm.Entries.Length; ++i )
+					if ( AnimalForm.Entries[i].Type == acontext.Type )
+						break;
+				if ( m.Skills[SkillName.Ninjitsu].Value < AnimalForm.Entries[i].ReqSkill )
+					AnimalForm.RemoveContext( m, true );
+			}
+			if ( !m.CanBeginAction ( typeof ( PolymorphSpell ) ) && m.Skills[SkillName.Magery].Value < 66.1 ) {
+				m.BodyMod = 0;
+				m.HueMod = -1;
+				m.NameMod = null;
+				m.EndAction( typeof( PolymorphSpell ) );
+				BaseArmor.ValidateMobile( m );
+				BaseClothing.ValidateMobile( m );
+			}
+			if ( !m.CanBeginAction ( typeof ( IncognitoSpell ) ) && m.Skills[SkillName.Magery].Value < 38.1 ) {
+				if ( m is PlayerMobile )
+					((PlayerMobile)m).SetHairMods( -1, -1 );
+				m.BodyMod = 0;
+				m.HueMod = -1;
+				m.NameMod = null;
+				m.EndAction( typeof( IncognitoSpell ) );
+				BaseArmor.ValidateMobile( m );
+				BaseClothing.ValidateMobile( m );
+				BuffInfo.RemoveBuff( m, BuffIcon.Incognito );
+			}
+			return;
+		}
+
+
 		[CommandProperty( AccessLevel.GameMaster )]
 		public double Skill_1_Value { get { return GetBonus( 0 ); } set { SetBonus( 0, value ); } }
 
@@ -766,7 +958,9 @@ namespace Server
 		Fire=0x00000002,
 		Cold=0x00000004,
 		Poison=0x00000008,
-		Energy=0x00000010
+		Energy=0x00000010,
+		Chaos=0x00000020,
+		Direct=0x00000040
 	}
 
 	public sealed class AosElementAttributes : BaseAttributes
@@ -811,6 +1005,12 @@ namespace Server
 
 		[CommandProperty( AccessLevel.GameMaster )]
 		public int Energy { get { return this[AosElementAttribute.Energy]; } set { this[AosElementAttribute.Energy] = value; } }
+
+		[CommandProperty( AccessLevel.GameMaster )]
+		public int Chaos { get { return this[AosElementAttribute.Chaos]; } set { this[AosElementAttribute.Chaos] = value; } }
+
+		[CommandProperty( AccessLevel.GameMaster )]
+		public int Direct { get { return this[AosElementAttribute.Direct]; } set { this[AosElementAttribute.Direct] = value; } }
 	}
 
 	[PropertyObject]

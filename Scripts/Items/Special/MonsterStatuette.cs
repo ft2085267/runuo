@@ -43,7 +43,13 @@ namespace Server.Items
 		Spider,
 		OphidianArchMage,
 		OphidianWarrior,
-		DreadHorn
+		OphidianKnight,
+		OphidianMage,
+		DreadHorn,
+		Minotaur,
+		BlackCat,
+		HalloweenGhoul,
+		Santa
 	}
 
 	public class MonsterStatuetteInfo
@@ -105,7 +111,13 @@ namespace Server.Items
 				/* Spider */			new MonsterStatuetteInfo( 1029668, 0x25C4, 1170 ),
 				/* OphidianArchMage */		new MonsterStatuetteInfo( 1029641, 0x25A9, 639 ),
 				/* OphidianWarrior */		new MonsterStatuetteInfo( 1029645, 0x25AD, 634 ),
-				/* DreadHorn */			new MonsterStatuetteInfo( 1031651, 0x2D83, 0xA8 )
+				/* OphidianKnight */		new MonsterStatuetteInfo( 1029642, 0x25aa, 634 ),
+				/* OphidianMage */		new MonsterStatuetteInfo( 1029643, 0x25ab, 639 ),
+				/* DreadHorn */			new MonsterStatuetteInfo( 1031651, 0x2D83, 0xA8 ),
+				/* Minotaur */			new MonsterStatuetteInfo( 1031657, 0x2D89, 0x596 ),
+				/* Black Cat */			new MonsterStatuetteInfo( 1096928, 0x4688, 0x69 ),
+				/* HalloweenGhoul */	new MonsterStatuetteInfo( 1076782, 0x2109, 0x482 ),
+				/* Santa */			new MonsterStatuetteInfo( 1097968, 0x4A98, 0x669 )
 			};
 
 		public static MonsterStatuetteInfo GetInfo( MonsterStatuetteType type )
@@ -152,6 +164,8 @@ namespace Server.Items
 					Hue = Utility.RandomSlimeHue();
 				else if( m_Type == MonsterStatuetteType.RedDeath )
 					Hue = 0x21;
+				else if( m_Type == MonsterStatuetteType.HalloweenGhoul )
+					Hue = 0xF4;
 				else
 					Hue = 0;
 
@@ -185,6 +199,8 @@ namespace Server.Items
 				Hue = Utility.RandomSlimeHue();
 			else if( m_Type == MonsterStatuetteType.RedDeath )
 				Hue = 0x21;
+			else if( m_Type == MonsterStatuetteType.HalloweenGhoul )
+				Hue = 0xF4;
 		}
 
 		public override bool HandlesOnMovement{ get{ return m_TurnedOn && IsLockedDown; } }

@@ -68,7 +68,7 @@ namespace Server.Spells.Necromancy
 				bool contains = ( types.Length == 0 );
 
 				for ( int j = 0; !contains && j < types.Length; ++j )
-					contains = ( types[j] == type );
+					contains = types[j].IsAssignableFrom( type );
 
 				if ( contains )
 					return group;
@@ -116,7 +116,7 @@ namespace Server.Spells.Necromancy
 					typeof( ValoriteElemental ), typeof( VeriteElemental ), typeof( PoisonElemental ),
 					typeof( FireElemental ), typeof( SummonedFireElemental ), typeof( SnowElemental ),
 					typeof( AirElemental ), typeof( SummonedAirElemental ), typeof( WaterElemental ),
-					typeof( SummonedAirElemental )
+					typeof( SummonedAirElemental ), typeof ( AcidElemental )
 				}, new SummonEntry[]
 				{
 					new SummonEntry( 5000, typeof( WailingBanshee ) ),
@@ -185,7 +185,7 @@ namespace Server.Spells.Necromancy
 
 			Corpse c = obj as Corpse;
 
-			if ( c == null )
+			if( c == null )
 			{
 				Caster.SendLocalizedMessage( 1061084 ); // You cannot animate that.
 			}
@@ -193,10 +193,12 @@ namespace Server.Spells.Necromancy
 			{
 				Type type = null;
 
-				if ( c.Owner != null )
+				if( c.Owner != null )
+				{
 					type = c.Owner.GetType();
+				}
 
-				if ( c.ItemID != 0x2006 || c.Channeled || type == typeof( PlayerMobile ) || type == null || ( c.Owner != null && c.Owner.Fame < 100 ) || ( ( c.Owner != null ) && ( c.Owner is BaseCreature ) && ( ((BaseCreature)c.Owner).Summoned || ((BaseCreature)c.Owner).IsBonded)) )
+				if( c.ItemID != 0x2006 || c.Animated || type == typeof( PlayerMobile ) || type == null || ( c.Owner != null && c.Owner.Fame < 100 ) || ( ( c.Owner != null ) && ( c.Owner is BaseCreature ) && ( ( ( BaseCreature )c.Owner ).Summoned || ( ( BaseCreature )c.Owner ).IsBonded ) ) )
 				{
 					Caster.SendLocalizedMessage( 1061085 ); // There's not enough life force there to animate.
 				}
@@ -204,23 +206,23 @@ namespace Server.Spells.Necromancy
 				{
 					CreatureGroup group = FindGroup( type );
 
-					if ( group != null )
+					if( group != null )
 					{
-						if ( group.m_Entries.Length == 0 || type == typeof( DemonKnight ) )
+						if( group.m_Entries.Length == 0 || type == typeof( DemonKnight ) )
 						{
 							Caster.SendLocalizedMessage( 1061086 ); // You cannot animate undead remains.
 						}
-						else if ( CheckSequence() )
+						else if( CheckSequence() )
 						{
 							Point3D p = c.GetWorldLocation();
 							Map map = c.Map;
 
-							if ( map != null )
+							if( map != null )
 							{
 								Effects.PlaySound( p, map, 0x1FB );
 								Effects.SendLocationParticles( EffectItem.Create( p, map, EffectItem.DefaultDuration ), 0x3789, 1, 40, 0x3F, 3, 9907, 0 );
 
-								Timer.DelayCall( TimeSpan.FromSeconds( 2.0 ), new TimerStateCallback( SummonDelay_Callback ), new object[]{ Caster, c, p, map, group } );
+								Timer.DelayCall( TimeSpan.FromSeconds( 2.0 ), new TimerStateCallback( SummonDelay_Callback ), new object[] { Caster, c, p, map, group } );
 							}
 						}
 					}
@@ -299,7 +301,7 @@ namespace Server.Spells.Necromancy
 			Map map = (Map)states[3];
 			CreatureGroup group = (CreatureGroup)states[4];
 
-			if ( corpse.ItemID != 0x2006 )
+			if ( corpse.Animated )
 				return;
 
 			Mobile owner = corpse.Owner;
@@ -375,16 +377,13 @@ namespace Server.Spells.Necromancy
 
 			summoned.MoveToWorld( loc, map );
 
-			corpse.ProcessDelta();
-			corpse.SendRemovePacket();
-			corpse.ItemID = Utility.Random( 0xECA, 9 ); // bone graphic
-			corpse.Hue = 0;
-			corpse.ProcessDelta();
+			corpse.Hue = 1109;
+			corpse.Animated = true;
 
 			Register( caster, summoned );
 		}
 
-		private static void Scale( BaseCreature bc, int scalar )
+		public static void Scale( BaseCreature bc, int scalar )
 		{
 			int toScale;
 

@@ -213,7 +213,7 @@ namespace Server.Guilds
 
 			m_PendingMembers.Remove( g );
 			m_Members.Add( g );
-			g.InvalidateMemberProperties();
+			g.Alliance.InvalidateMemberProperties();
 		}
 
 		public void RemoveGuild( Guild g )
@@ -528,11 +528,10 @@ namespace Server.Guilds
 				if( m_Opponent.FindPendingWar( m_Guild ) != null && m_Guild.FindPendingWar( m_Opponent ) != null )
 					return WarStatus.Pending;
 
-
 				if( w == null )
 					return WarStatus.Win;
 
-				if( m_WarLength != TimeSpan.Zero && (m_WarBeginning + m_WarLength) < DateTime.Now )
+				if( m_WarLength != TimeSpan.Zero && (m_WarBeginning + m_WarLength) < DateTime.UtcNow )
 				{
 					if( m_Kills > w.m_Kills )
 						return WarStatus.Win;
@@ -604,9 +603,10 @@ namespace Server.Guilds
 			{
 				Guild g = null;
 
-				int id = Utility.GetInt32( arg, -1 );
-				if( id != -1 )
-					g = Guild.Find( id ) as Guild;
+                int id;
+
+                if( int.TryParse( arg, out id ) )
+                    g = Guild.Find( id ) as Guild;
 
 				if( g == null )
 				{
@@ -616,11 +616,13 @@ namespace Server.Guilds
 						g = Guild.FindByName( arg ) as Guild;
 				}
 
-				if( g != null )
+				if ( g != null )
+				{
 					from.SendGump( new PropertiesGump( from, g ) );
 
-				if( NewGuildSystem && from.AccessLevel >= AccessLevel.GameMaster && from is PlayerMobile )
-					from.SendGump( new GuildInfoGump( (PlayerMobile)from, g ) );
+					if ( NewGuildSystem && from.AccessLevel >= AccessLevel.GameMaster && from is PlayerMobile )
+						from.SendGump( new GuildInfoGump( (PlayerMobile)from, g ) );
+				}
 			}
 
 		}
@@ -685,17 +687,18 @@ namespace Server.Guilds
 				pm.SendGump( new GuildInfoGump( pm, pm.Guild as Guild ) );
 		}
 
-		public static BaseGuild EventSink_CreateGuild( CreateGuildEventArgs args )
+		public static void EventSink_CreateGuild(CreateGuildEventArgs args)
 		{
-			return (BaseGuild)(new Guild( args.Id ));
+			args.Guild = new Guild(args.Id);
 		}
 		#endregion
 
 		public static bool NewGuildSystem{ get{ return Core.SE; } }
+		public static bool OrderChaos{ get{ return !Core.SE; } }
 
 		public static readonly int RegistrationFee = 25000;
 		public static readonly int AbbrevLimit = 4;
-		public static readonly int NameLimit = 20;
+		public static readonly int NameLimit = 40;
 		public static readonly int MajorityPercentage = 66;
 		public static readonly TimeSpan InactiveTime = TimeSpan.FromDays( 30 );
 
@@ -796,6 +799,16 @@ namespace Server.Guilds
 				return false;
 			}
 		}
+		
+		public static Guild GetAllianceLeader( Guild g )
+		{
+			AllianceInfo alliance = g.Alliance;
+			
+			if ( alliance != null && alliance.Leader != null && alliance.IsMember( g ) )
+				return alliance.Leader;
+			
+			return g;
+		}
 
 		#endregion
 
@@ -837,8 +850,6 @@ namespace Server.Guilds
 			return null;
 		}
 
-
-		
 		public void CheckExpiredWars()
 		{
 			for( int i = 0; i < AcceptedWars.Count; i++ )
@@ -924,15 +935,20 @@ namespace Server.Guilds
 			if( killer == null || victim.Guild == null || killer.Guild == null )
 				return;
 
-			Guild victimGuild = victim.Guild as Guild;
-			Guild killerGuild = killer.Guild as Guild;
-
+			Guild victimGuild = GetAllianceLeader( victim.Guild as Guild );
+			Guild killerGuild = GetAllianceLeader( killer.Guild as Guild );
+			
 			WarDeclaration war = killerGuild.FindActiveWar( victimGuild );
-			if( war != null )
-				war.Kills++;
 
-			victimGuild.CheckExpiredWars();
-			killerGuild.CheckExpiredWars();
+			if( war == null )
+				return;
+			
+			war.Kills++;
+
+			if ( war.Opponent == victimGuild )
+				killerGuild.CheckExpiredWars();
+			else
+				victimGuild.CheckExpiredWars();
 		}
 		#endregion
 
@@ -984,7 +1000,7 @@ namespace Server.Guilds
 			m_Candidates = new List<Mobile>();
 			m_Accepted = new List<Mobile>();
 
-			m_LastFealty = DateTime.Now;
+			m_LastFealty = DateTime.UtcNow;
 
 			m_Name = name;
 			m_Abbreviation = abbreviation;
@@ -1033,7 +1049,29 @@ namespace Server.Guilds
 					m_Members[i].Delta( MobileDelta.Noto );
 			}
 		}
+		
+		public void InvalidateWarNotoriety()
+		{
+			Guild g = GetAllianceLeader( this );
 
+			if ( g.Alliance != null )
+				g.Alliance.InvalidateMemberNotoriety();
+			else
+				g.InvalidateMemberNotoriety();
+		
+			if ( g.AcceptedWars == null )
+				return;
+
+			foreach ( WarDeclaration warDec in g.AcceptedWars )
+			{
+				Guild opponent = warDec.Opponent;
+						
+				if ( opponent.Alliance != null )
+					opponent.Alliance.InvalidateMemberNotoriety();
+				else
+					opponent.InvalidateMemberNotoriety();
+			}
+		}
 
 		[CommandProperty( AccessLevel.GameMaster )]
 		public Mobile Leader
@@ -1129,13 +1167,10 @@ namespace Server.Guilds
 
 		public bool IsEnemy( Guild g )
 		{
-			if( NewGuildSystem )
-				return IsWar( g );
-
-			if( m_Type != GuildType.Regular && g.m_Type != GuildType.Regular && m_Type != g.m_Type )
+			if( Type != GuildType.Regular && g.Type != GuildType.Regular && Type != g.Type )
 				return true;
 
-			return m_Enemies.Contains( g );
+			return IsWar( g );
 		}
 
 		public bool IsWar( Guild g )
@@ -1145,24 +1180,14 @@ namespace Server.Guilds
 
 			if( NewGuildSystem )
 			{
-				if( FindActiveWar( g ) != null )
+				Guild guild = GetAllianceLeader( this );
+				Guild otherGuild = GetAllianceLeader( g );
+
+				if ( guild.FindActiveWar( otherGuild ) != null )
 					return true;
-
-				AllianceInfo thisAlliace = this.Alliance;
-
-				if( thisAlliace != null && this != thisAlliace.Leader && thisAlliace.Leader != null && thisAlliace.IsMember( this ) )
-					if( thisAlliace.Leader.FindActiveWar( g ) != null )
-						return true;
-
-				AllianceInfo otherAlliance = g.Alliance;
-
-				if( otherAlliance != null && otherAlliance.Leader != null && otherAlliance.Leader != g && otherAlliance.IsMember( g ) )
-					if( FindActiveWar( otherAlliance.Leader ) != null )
-						return true;
 
 				return false;
 			}
-
 
 			return m_Enemies.Contains( g );
 		}
@@ -1171,7 +1196,7 @@ namespace Server.Guilds
 		#region Serialization
 		public override void Serialize( GenericWriter writer )
 		{
-			if ( this.LastFealty+TimeSpan.FromDays( 1.0 ) < DateTime.Now )
+			if ( this.LastFealty+TimeSpan.FromDays( 1.0 ) < DateTime.UtcNow )
 				this.CalculateGuildmaster();
 
 			CheckExpiredWars();
@@ -1388,6 +1413,11 @@ namespace Server.Guilds
 
 				if( m is PlayerMobile )
 					((PlayerMobile)m).GuildRank = RankDefinition.Lowest;
+				
+				Guild guild = m.Guild as Guild;
+
+				if ( guild != null )
+					guild.InvalidateWarNotoriety();
 			}
 		}
 
@@ -1400,8 +1430,11 @@ namespace Server.Guilds
 			if ( m_Members.Contains( m ) )
 			{
 				m_Members.Remove( m );
-				m.Guild = null;
 				
+				Guild guild = m.Guild as Guild;
+				
+				m.Guild = null;
+
 				if( m is PlayerMobile )
 					((PlayerMobile)m).GuildRank = RankDefinition.Lowest;
 
@@ -1418,6 +1451,11 @@ namespace Server.Guilds
 
 				if ( m_Members.Count == 0 )
 					Disband();
+				
+				if ( guild != null )
+					guild.InvalidateWarNotoriety();
+				
+				m.Delta( MobileDelta.Noto );
 			}
 		}
 
@@ -1560,7 +1598,7 @@ namespace Server.Guilds
 			if( NewGuildSystem )
 			{
 				PlayerMobile pm = m as PlayerMobile;
-				if( pm == null || pm.LastOnline + InactiveTime < DateTime.Now )
+				if( pm == null || pm.LastOnline + InactiveTime < DateTime.UtcNow )
 					return false;
 			}
 
@@ -1569,7 +1607,6 @@ namespace Server.Guilds
 
 		public void CalculateGuildmaster()
 		{
-			//Hashtable votes = new Hashtable();
 			Dictionary<Mobile, int> votes = new Dictionary<Mobile, int>();
 
 			int votingMembers = 0;
@@ -1583,7 +1620,6 @@ namespace Server.Guilds
 
 				Mobile m = memb.GuildFealty;
 
-				//if ( m == null || m.Deleted || m.Guild != this )
 				if( !CanBeVotedFor( m ) )
 				{
 					if ( m_Leader != null && !m_Leader.Deleted && m_Leader.Guild == this )
@@ -1601,13 +1637,6 @@ namespace Server.Guilds
 					votes[m] = 1;
 				else
 					votes[m] = v + 1;
-
-				/*
-				if ( votes[m] == null )
-					votes[m] = (int)1;
-				else
-					votes[m] = (int)(votes[m]) + 1;
-				 * */
 				
 				votingMembers++;
 			}
@@ -1634,7 +1663,7 @@ namespace Server.Guilds
 				GuildMessage( 1018015, true, winner.Name ); // Guild Message: Guildmaster changed to:
 
 			Leader = winner;
-			m_LastFealty = DateTime.Now;
+			m_LastFealty = DateTime.UtcNow;
 		}
 
 		#endregion
@@ -1733,22 +1762,20 @@ namespace Server.Guilds
 		{
 			get
 			{
-				return m_Type;
+				return OrderChaos ? m_Type : GuildType.Regular;
 			}
 			set
 			{
 				if ( m_Type != value )
 				{
 					m_Type = value;
-					m_TypeLastChange = DateTime.Now;
+					m_TypeLastChange = DateTime.UtcNow;
 
 					InvalidateMemberProperties();
 				}
 			}
 		}
 
-
-		
 		[CommandProperty( AccessLevel.GameMaster )]
 		public DateTime LastFealty
 		{
@@ -1771,7 +1798,6 @@ namespace Server.Guilds
 			}
 		}
 
-		
 		public List<Guild> Allies
 		{
 			get
@@ -1845,6 +1871,5 @@ namespace Server.Guilds
 		}
 
 		#endregion
-
 	}
 }

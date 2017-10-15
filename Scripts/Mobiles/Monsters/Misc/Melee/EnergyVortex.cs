@@ -25,7 +25,7 @@ namespace Server.Mobiles
 		{
 			Name = "an energy vortex";
 
-			if( Core.SE && 0.02 > Utility.RandomDouble() ) // Tested on OSI, but is this right? Who knows.
+			if( Core.SE && 0.002 > Utility.RandomDouble() ) // Per OSI FoF, it's a 1/500 chance.
 			{
 				// Llama vortex!
 				Body = 0xDC;
@@ -56,8 +56,8 @@ namespace Server.Mobiles
 			SetResistance( ResistanceType.Energy, 90, 100 );
 
 			SetSkill( SkillName.MagicResist, 99.9 );
-			SetSkill( SkillName.Tactics, 90.0 );
-			SetSkill( SkillName.Wrestling, 100.0 );
+			SetSkill( SkillName.Tactics, 100.0 );
+			SetSkill( SkillName.Wrestling, 120.0 );
 
 			Fame = 0;
 			Karma = 0;
@@ -97,7 +97,7 @@ namespace Server.Mobiles
 				while ( spirtsOrVortexes.Count > 6 )
 				{
 					int index = Utility.Random( spirtsOrVortexes.Count );
-					//TODO: Confim if it's the dispel with all the pretty effects or just a Deletion of it.
+					//TODO: Confirm if it's the dispel with all the pretty effects or just a deletion of it.
 					Dispel( ( (Mobile) spirtsOrVortexes[index] ) );
 					spirtsOrVortexes.RemoveAt( index );
 				}

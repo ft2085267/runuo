@@ -37,17 +37,33 @@ namespace Server.Misc
 
 		private static CityInfo[] StartingCities = new CityInfo[]
 			{
-				new CityInfo( "Yew",		"The Empath Abbey",			633,	858,	0  ),
-				new CityInfo( "Minoc",		"The Barnacle",				2476,	413,	15 ),
-				new CityInfo( "Britain",	"Sweet Dreams Inn",			1496,	1628,	10 ),
-				new CityInfo( "Moonglow",	"The Scholars Inn",			4408,	1168,	0  ),
-				new CityInfo( "Trinsic",	"The Traveler's Inn",		1845,	2745,	0  ),
-				new CityInfo( "Magincia",	"The Great Horns Tavern",	3734,	2222,	20 ),
-				new CityInfo( "Jhelom",		"The Mercenary Inn",		1374,	3826,	0  ),
-				new CityInfo( "Skara Brae",	"The Falconer's Inn",		618,	2234,	0  ),
-				new CityInfo( "Vesper",		"The Ironwood Inn",			2771,	976,	0  ),
-				new CityInfo( "Haven",		"Buckler's Hideaway",		3667,	2625,	0  )
+				new CityInfo( "New Haven",	"New Haven Bank",	1150168, 3667,	2625,	0  ),
+				new CityInfo( "Yew",		"The Empath Abbey",	1075072, 633,	858,	0  ),
+				new CityInfo( "Minoc",		"The Barnacle",		1075073, 2476,	413,	15 ),
+				new CityInfo( "Britain",	"The Wayfarer's Inn",	1075074, 1602,	1591,	20 ),
+				new CityInfo( "Moonglow",	"The Scholars Inn",	1075075, 4408,	1168,	0  ),
+				new CityInfo( "Trinsic",	"The Traveler's Inn",	1075076, 1845,	2745,	0  ),
+				new CityInfo( "Jhelom",		"The Mercenary Inn",	1075078, 1374,	3826,	0  ),
+				new CityInfo( "Skara Brae",	"The Falconer's Inn",	1075079, 618,	2234,	0  ),
+				new CityInfo( "Vesper",		"The Ironwood Inn",	1075080, 2771,	976,	0  )
 			};
+
+		/* Old Haven/Magincia Locations
+			new CityInfo( "Britain", "Sweet Dreams Inn", 1496, 1628, 10 );
+			// ..
+			// Trinsic
+			new CityInfo( "Magincia", "The Great Horns Tavern", 3734, 2222, 20 ),
+			// Jhelom
+			// ..
+			new CityInfo( "Haven", "Buckler's Hideaway", 3667, 2625, 0 )
+
+			if ( Core.AOS )
+			{
+				//CityInfo haven = new CityInfo( "Haven", "Uzeraan's Mansion", 3618, 2591, 0 );
+				CityInfo haven = new CityInfo( "Haven", "Uzeraan's Mansion", 3503, 2574, 14 );
+				StartingCities[StartingCities.Length - 1] = haven;
+			}
+		*/
 
 		private static bool PasswordCommandEnabled = false;
 
@@ -59,13 +75,6 @@ namespace Server.Misc
 
 			if ( PasswordCommandEnabled )
 				CommandSystem.Register( "Password", AccessLevel.Player, new CommandEventHandler( Password_OnCommand ) );
-
-			if ( Core.AOS )
-			{
-				//CityInfo haven = new CityInfo( "Haven", "Uzeraan's Mansion", 3618, 2591, 0 );
-				CityInfo haven = new CityInfo( "Haven", "Uzeraan's Mansion", 3503, 2574, 14 );
-				StartingCities[StartingCities.Length - 1] = haven;
-			}
 		}
 
 		[Usage( "Password <newPassword> <repeatPassword>" )]
@@ -112,7 +121,7 @@ namespace Server.Misc
 			bool isSafe = true;
 
 			for ( int i = 0; isSafe && i < pass.Length; ++i )
-				isSafe = ( pass[i] >= 0x20 && pass[i] < 0x80 );
+				isSafe = ( pass[i] >= 0x20 && pass[i] < 0x7F );
 
 			if ( !isSafe )
 			{
@@ -188,7 +197,7 @@ namespace Server.Misc
 					state.Send( new DeleteResult( DeleteResultType.CharBeingPlayed ) );
 					state.Send( new CharacterListUpdate( acct ) );
 				}
-				else if ( RestrictDeletion && DateTime.Now < (m.CreationTime + DeleteDelay) )
+				else if ( RestrictDeletion && DateTime.UtcNow < (m.CreationTime + DeleteDelay) )
 				{
 					state.Send( new DeleteResult( DeleteResultType.CharTooYoung ) );
 					state.Send( new CharacterListUpdate( acct ) );
@@ -242,20 +251,34 @@ namespace Server.Misc
 
 				return m_IPTable;
 			}
-		}	
+		}
+
+		private static readonly char[] m_ForbiddenChars = new char[]
+		{
+			'<', '>', ':', '"', '/', '\\', '|', '?', '*'
+		};
+
+		private static bool IsForbiddenChar( char c )
+		{
+			for ( int i = 0; i < m_ForbiddenChars.Length; ++i )
+				if ( c == m_ForbiddenChars[i] )
+					return true;
+
+			return false;
+		}
 
 		private static Account CreateAccount( NetState state, string un, string pw )
 		{
 			if ( un.Length == 0 || pw.Length == 0 )
 				return null;
 
-			bool isSafe = true;
+			bool isSafe = !( un.StartsWith( " " ) || un.EndsWith( " " ) || un.EndsWith( "." ) );
 
 			for ( int i = 0; isSafe && i < un.Length; ++i )
-				isSafe = ( un[i] >= 0x20 && un[i] < 0x80 );
+				isSafe = ( un[i] >= 0x20 && un[i] < 0x7F && !IsForbiddenChar( un[i] ) );
 
 			for ( int i = 0; isSafe && i < pw.Length; ++i )
-				isSafe = ( pw[i] >= 0x20 && pw[i] < 0x80 );
+				isSafe = ( pw[i] >= 0x20 && pw[i] < 0x7F );
 
 			if ( !isSafe )
 				return null;
@@ -283,7 +306,7 @@ namespace Server.Misc
 				Console.WriteLine( "Login: {0}: Past IP limit threshold", e.State );
 
 				using ( StreamWriter op = new StreamWriter( "ipLimits.log", true ) )
-					op.WriteLine( "{0}\tPast IP limit threshold\t{1}", e.State, DateTime.Now );
+					op.WriteLine( "{0}\tPast IP limit threshold\t{1}", e.State, DateTime.UtcNow );
 
 				return;
 			}
@@ -296,7 +319,7 @@ namespace Server.Misc
 
 			if ( acct == null )
 			{
-				if ( AutoAccountCreation && un.Trim().Length > 0 )	//To prevent someone from making an account of just '' or a bunch of meaningless spaces 
+				if ( AutoAccountCreation && un.Trim().Length > 0 ) // To prevent someone from making an account of just '' or a bunch of meaningless spaces
 				{
 					e.State.Account = acct = CreateAccount( e.State, un, pw );
 					e.Accepted = acct == null ? false : acct.CheckAccess( e.State );
@@ -347,7 +370,7 @@ namespace Server.Misc
 				Console.WriteLine( "Login: {0}: Past IP limit threshold", e.State );
 
 				using ( StreamWriter op = new StreamWriter( "ipLimits.log", true ) )
-					op.WriteLine( "{0}\tPast IP limit threshold\t{1}", e.State, DateTime.Now );
+					op.WriteLine( "{0}\tPast IP limit threshold\t{1}", e.State, DateTime.UtcNow );
 
 				return;
 			}
@@ -388,6 +411,25 @@ namespace Server.Misc
 
 			if ( !e.Accepted )
 				AccountAttackLimiter.RegisterInvalidAccess( e.State );
+		}
+
+		public static bool CheckAccount( Mobile mobCheck, Mobile accCheck )
+		{
+			if ( accCheck != null )
+			{
+				Account a = accCheck.Account as Account;
+
+				if ( a != null )
+				{
+					for ( int i = 0; i < a.Length; ++i )
+					{
+						if ( a[i] == mobCheck )
+							return true;
+					}
+				}
+			}
+
+			return false;
 		}
 	}
 }

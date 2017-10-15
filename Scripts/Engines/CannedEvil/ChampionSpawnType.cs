@@ -12,7 +12,9 @@ namespace Server.Engines.CannedEvil
 		ForestLord,
 		VerminHorde,
 		UnholyTerror,
-		SleepingDragon
+		SleepingDragon,
+		Glade,
+		Pestilence
 	}
 
 	public class ChampionSpawnInfo
@@ -41,7 +43,7 @@ namespace Server.Engines.CannedEvil
 			{
 				new ChampionSpawnInfo( "Abyss", typeof( Semidar ), new string[]{ "Foe", "Assassin", "Conqueror" }, new Type[][]	// Abyss
 				{																											// Abyss
-					new Type[]{ typeof( StrongMongbat ), typeof( Imp ) },													// Level 1
+					new Type[]{ typeof( GreaterMongbat ), typeof( Imp ) },													// Level 1
 					new Type[]{ typeof( Gargoyle ), typeof( Harpy ) },														// Level 2
 					new Type[]{ typeof( FireGargoyle ), typeof( StoneGargoyle ) },											// Level 3
 					new Type[]{ typeof( Daemon ), typeof( Succubus ) }														// Level 4
@@ -90,6 +92,20 @@ namespace Server.Engines.CannedEvil
 					new Type[]{ typeof( DeathwatchBeetle ), typeof( Kappa ) },
 					new Type[]{ typeof( LesserHiryu ), typeof( RevenantLion ) },
 					new Type[]{ typeof( Hiryu ), typeof( Oni ) }
+				} ),
+				new ChampionSpawnInfo( "Glade", typeof( Twaulo ), new string[]{ "Banisher", "Enforcer", "Eradicator" } , new Type[][]
+				{																											// Glade
+					new Type[]{ typeof( Pixie ), typeof( ShadowWisp ) },
+					new Type[]{ typeof( Centaur ), typeof( MLDryad ) },
+					new Type[]{ typeof( Satyr ), typeof( CuSidhe ) },
+					new Type[]{ typeof( FerelTreefellow ), typeof( RagingGrizzlyBear ) }
+				} ),
+				new ChampionSpawnInfo( "The Corrupt", typeof( Ilhenir ), new string[]{ "Cleanser", "Expunger", "Depurator" } , new Type[][]
+				{																											// Unholy Terror
+					new Type[]{ typeof( PlagueSpawn ), typeof( Bogling ) },
+					new Type[]{ typeof( PlagueBeast ), typeof( BogThing ) },
+					new Type[]{ typeof( PlagueBeastLord ), typeof( InterredGrizzle ) },
+					new Type[]{ typeof( FetidEssence ), typeof( PestilentBandage ) }
 				} )
 			};
 

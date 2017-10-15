@@ -44,19 +44,19 @@ namespace Server.Engines.Plants
 			AddPlusMinus( 196, 67, system.Water );
 
 			AddButton( 209, 91, 0xD4, 0xD4, 7, GumpButtonType.Reply, 0 ); // Poison potion
-			AddItem( 197, 91, 0xF0A );
+			AddItem( 201, 91, 0xF0A );
 			AddLevel( 196, 91, system.PoisonPotion );
 
 			AddButton( 209, 115, 0xD4, 0xD4, 8, GumpButtonType.Reply, 0 ); // Cure potion
-			AddItem( 192, 115, 0xF07 );
+			AddItem( 201, 115, 0xF07 );
 			AddLevel( 196, 115, system.CurePotion );
 
 			AddButton( 209, 139, 0xD4, 0xD4, 9, GumpButtonType.Reply, 0 ); // Heal potion
-			AddItem( 190, 139, 0xF0C );
+			AddItem( 201, 139, 0xF0C );
 			AddLevel( 196, 139, system.HealPotion );
 
 			AddButton( 209, 163, 0xD4, 0xD4, 10, GumpButtonType.Reply, 0 ); // Strength potion
-			AddItem( 193, 163, 0xF09 );
+			AddItem( 201, 163, 0xF09 );
 			AddLevel( 196, 163, system.StrengthPotion );
 
 			AddImage( 48, 47, 0xD2 );
@@ -226,8 +226,14 @@ namespace Server.Engines.Plants
 		{
 			Mobile from = sender.Mobile;
 
-			if ( info.ButtonID == 0 || m_Plant.Deleted || m_Plant.PlantStatus >= PlantStatus.DecorativePlant || !from.InRange( m_Plant.GetWorldLocation(), 3 ) )
+			if ( info.ButtonID == 0 || m_Plant.Deleted || m_Plant.PlantStatus >= PlantStatus.DecorativePlant )
 				return;
+			
+			if ( ( ( info.ButtonID >= 6 && info.ButtonID <= 10 ) || info.ButtonID == 12 ) && !from.InRange( m_Plant.GetWorldLocation(), 3 ) )
+			{
+				from.LocalOverheadMessage( MessageType.Regular, 0x3E9, 500446 ); // That is too far away.
+				return;
+			}
 
 			if ( !m_Plant.IsUsableBy( from ) )
 			{
@@ -286,8 +292,32 @@ namespace Server.Engines.Plants
 				}
 				case 6: // Water
 				{
-					from.Target = new PlantPourTarget( m_Plant );
-					from.SendLocalizedMessage( 1060808, "#" + m_Plant.GetLocalizedPlantStatus().ToString() ); // Target the container you wish to use to water the ~1_val~.
+					Item[] item = from.Backpack.FindItemsByType( typeof( BaseBeverage ) );
+					
+					bool foundUsableWater = false;
+					
+					if ( item != null && item.Length > 0 )
+					{
+						for ( int i = 0; i < item.Length; ++i )
+						{
+							BaseBeverage beverage = (BaseBeverage)item[i];
+							
+							if ( !beverage.IsEmpty && beverage.Pourable && beverage.Content == BeverageType.Water )
+							{
+								foundUsableWater = true;
+								m_Plant.Pour( from, beverage );
+								break;
+							}
+						}
+					}
+					
+					if ( !foundUsableWater )
+					{
+						from.Target = new PlantPourTarget( m_Plant );
+						from.SendLocalizedMessage( 1060808, "#" + m_Plant.GetLocalizedPlantStatus().ToString() ); // Target the container you wish to use to water the ~1_val~.
+					}
+
+					from.SendGump( new MainPlantGump( m_Plant ) );
 
 					break;
 				}

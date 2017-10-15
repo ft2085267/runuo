@@ -60,7 +60,8 @@ namespace Server {
 
 		private bool finished;
 
-		public override void Save( SaveMetrics metrics ) {
+		public override void Save(SaveMetrics metrics, bool permitBackgroundWrite)
+		{
 			this.metrics = metrics;
 
 			OpenFiles();
@@ -163,6 +164,8 @@ namespace Server {
 
 			guildData.Close();
 			guildIndex.Close();
+
+			World.NotifyDiskWriteComplete();
 		}
 
 		private void OnSerialized( ConsumableEntry entry ) {
@@ -195,7 +198,8 @@ namespace Server {
 				metrics.OnItemSaved( length );
 			}
 
-			if ( item.Decays && item.Parent == null && item.Map != Map.Internal && DateTime.Now > ( item.LastMoved + item.DecayTime ) ) {
+			if (item.Decays && item.Parent == null && item.Map != Map.Internal && DateTime.UtcNow > (item.LastMoved + item.DecayTime))
+			{
 				_decayQueue.Enqueue( item );
 			}
 		}

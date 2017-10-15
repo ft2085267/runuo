@@ -1,8 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Items;
-using System.Collections.Generic;
 
 namespace Server.Mobiles
 {
@@ -15,12 +15,12 @@ namespace Server.Mobiles
 		public static Type[] ArtifactRarity11 { get { return m_ArtifactRarity11; } }
 		private static Type[] m_ArtifactRarity10 = new Type[]
 			{
+				typeof( LegacyOfTheDreadLord ),
 				typeof( TheTaskmaster )
 			};
 
 		private static Type[] m_ArtifactRarity11 = new Type[]
 			{
-				typeof( LegacyOfTheDreadLord ),
 				typeof( TheDragonSlayer ),
 				typeof( ArmorOfFortune ),
 				typeof( GauntletsOfNobility ),
@@ -190,6 +190,9 @@ namespace Server.Mobiles
 			SetResistance( ResistanceType.Cold, 30 );
 			SetResistance( ResistanceType.Poison, 30 );
 			SetResistance( ResistanceType.Energy, 30 );
+
+			SetSkill( SkillName.Necromancy, 120, 120.0 );
+			SetSkill( SkillName.SpiritSpeak, 120.0, 120.0 );
 
 			SetSkill( SkillName.DetectHidden, 80.0 );
 			SetSkill( SkillName.EvalInt, 100.0 );

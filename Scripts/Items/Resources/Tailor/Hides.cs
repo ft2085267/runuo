@@ -15,15 +15,8 @@ namespace Server.Items
 			set{ m_Resource = value; InvalidateProperties(); }
 		}
 		
-		string ICommodity.Description
-		{
-			get
-			{
-				return String.Format( Amount == 1 ? "{0} pile of hides" : "{0} piles of hides", Amount );
-			}
-		}
-
 		int ICommodity.DescriptionNumber { get { return LabelNumber; } }
+		bool ICommodity.IsDeedable { get { return true; } }
 
 		public override void Serialize( GenericWriter writer )
 		{
@@ -141,12 +134,15 @@ namespace Server.Items
 			int version = reader.ReadInt();
 		}
 
-		
-
 		public bool Scissor( Mobile from, Scissors scissors )
 		{
 			if ( Deleted || !from.CanSee( this ) ) return false;
 
+			if ( Core.AOS && !IsChildOf ( from.Backpack ) )
+			{
+				from.SendLocalizedMessage ( 502437 ); // Items you wish to cut must be in your backpack
+				return false;
+			}
 			base.ScissorHelper( from, new Leather(), 1 );
 
 			return true;
@@ -184,11 +180,15 @@ namespace Server.Items
 			int version = reader.ReadInt();
 		}
 
-		
-
 		public bool Scissor( Mobile from, Scissors scissors )
 		{
 			if ( Deleted || !from.CanSee( this ) ) return false;
+
+			if ( Core.AOS && !IsChildOf ( from.Backpack ) )
+			{
+				from.SendLocalizedMessage ( 502437 ); // Items you wish to cut must be in your backpack
+				return false;
+			}
 
 			base.ScissorHelper( from, new SpinedLeather(), 1 );
 
@@ -227,12 +227,16 @@ namespace Server.Items
 			int version = reader.ReadInt();
 		}
 
-		
-
 		public bool Scissor( Mobile from, Scissors scissors )
 		{
 			if ( Deleted || !from.CanSee( this ) ) return false;
 
+			if ( Core.AOS && !IsChildOf ( from.Backpack ) )
+			{
+				from.SendLocalizedMessage ( 502437 ); // Items you wish to cut must be in your backpack
+				return false;
+			}
+			
 			base.ScissorHelper( from, new HornedLeather(), 1 );
 
 			return true;
@@ -270,11 +274,15 @@ namespace Server.Items
 			int version = reader.ReadInt();
 		}
 
-		
-
 		public bool Scissor( Mobile from, Scissors scissors )
 		{
 			if ( Deleted || !from.CanSee( this ) ) return false;
+
+			if ( Core.AOS && !IsChildOf ( from.Backpack ) )
+			{
+				from.SendLocalizedMessage ( 502437 ); // Items you wish to cut must be in your backpack
+				return false;
+			}
 
 			base.ScissorHelper( from, new BarbedLeather(), 1 );
 

@@ -61,6 +61,9 @@ namespace Server.Items
 			{
 				from.SendLocalizedMessage( 1042010 ); // You must have the object in your backpack to use it.
 			}
+			else if ( from.Mounted )
+				from.SendLocalizedMessage ( 1010097 ); // You cannot use this while mounted.
+
 			else if ( from.CanBeginAction( typeof( SnowPile ) ) )
 			{
 				from.SendLocalizedMessage( 1005575 ); // You carefully pack the snow into a ball...
@@ -109,7 +112,11 @@ namespace Server.Items
 					Mobile targ = (Mobile) target;
 					Container pack = targ.Backpack;
 
-					if ( pack != null && pack.FindItemByType( new Type[]{ typeof( SnowPile ), typeof( PileOfGlacialSnow ) } ) != null )
+					if ( from.Region.IsPartOf( typeof( Engines.ConPVP.SafeZone ) ) || targ.Region.IsPartOf( typeof( Engines.ConPVP.SafeZone ) ) )
+					{
+						from.SendMessage( "You may not throw snow here." );
+					}
+					else if ( pack != null && pack.FindItemByType( new Type[]{ typeof( SnowPile ), typeof( PileOfGlacialSnow ) } ) != null )
 					{
 						if ( from.BeginAction( typeof( SnowPile ) ) )
 						{

@@ -57,9 +57,9 @@ namespace Server.Guilds
 				if ( aState == null && bState == null )
 					return x.LastOnline.CompareTo( y.LastOnline );
 				else if ( aState == null )
-					return 1;
-				else if ( bState == null )
 					return -1;
+				else if ( bState == null )
+					return 1;
 				else
 					return 0;
 			}

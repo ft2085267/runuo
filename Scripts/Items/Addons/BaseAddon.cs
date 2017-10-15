@@ -13,7 +13,8 @@ namespace Server.Items
 		Blocked,
 		NotInHouse,
 		DoorTooClose,
-		NoWall
+		NoWall,
+		DoorsNotClosed
 	}
 
 	public interface IAddon
@@ -25,6 +26,25 @@ namespace Server.Items
 
 	public abstract class BaseAddon : Item, IChopable, IAddon
 	{
+		#region Mondain's Legacy
+		private CraftResource m_Resource;
+
+		[CommandProperty( AccessLevel.GameMaster )]
+		public CraftResource Resource
+		{
+			get{ return m_Resource;	}
+			set
+			{
+				if ( m_Resource != value )
+				{
+					m_Resource = value;
+					Hue = CraftResources.GetHue( m_Resource );
+					
+					InvalidateProperties();
+				}
+			}
+		}
+		#endregion
 		private List<AddonComponent> m_Components;
 
 		public void AddComponent( AddonComponent c, int x, int y, int z )
@@ -161,7 +181,7 @@ namespace Server.Items
 		{
 			house = BaseHouse.FindHouseAt( p, map, height );
 
-			if ( from == null || house == null || !house.IsOwner( from ) )
+			if ( house == null || ( from != null && !house.IsOwner( from ) ) )
 				return false;
 
 			return true;
@@ -172,12 +192,12 @@ namespace Server.Items
 			if ( map == null )
 				return false;
 
-			Tile[] tiles = map.Tiles.GetStaticTiles( x, y, true );
+			StaticTile[] tiles = map.Tiles.GetStaticTiles( x, y, true );
 
 			for ( int i = 0; i < tiles.Length; ++i )
 			{
-				Tile t = tiles[i];
-				ItemData id = TileData.ItemTable[t.ID & 0x3FFF];
+				StaticTile t = tiles[i];
+				ItemData id = TileData.ItemTable[t.ID & TileData.MaxItemValue];
 
 				if ( (id.Flags & TileFlag.Wall) != 0 && (z + 16) > t.Z && (t.Z + t.Height) > z )
 					return true;

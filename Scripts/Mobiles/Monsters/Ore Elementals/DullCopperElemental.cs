@@ -44,7 +44,9 @@ namespace Server.Mobiles
 
 			VirtualArmor = 20;
 
-			PackItem( new DullCopperOre( oreAmount ) );
+			Item ore = new DullCopperOre( oreAmount );
+			ore.ItemID = 0x19B9;
+			PackItem( ore );
 		}
 
 		public override void GenerateLoot()
@@ -55,6 +57,7 @@ namespace Server.Mobiles
 
 		public override bool AutoDispel{ get{ return true; } }
 		public override bool BleedImmune{ get{ return true; } }
+		public override int TreasureMapLevel{ get{ return 1; } }
 
 		public DullCopperElemental( Serial serial ) : base( serial )
 		{

@@ -218,7 +218,7 @@ namespace Server.Factions
 				}
 				else
 				{
-					recvState.LastHonorTime = DateTime.Now;
+					recvState.LastHonorTime = DateTime.UtcNow;
 					giveState.KillPoints -= 5;
 					recvState.KillPoints += 4;
 
@@ -489,7 +489,7 @@ namespace Server.Factions
 
 				if ( guild.Leader != pm )
 					pm.SendLocalizedMessage( 1005057 ); // You cannot join a faction because you are in a guild and not the guildmaster
-				else if ( !Guild.NewGuildSystem && guild.Type != GuildType.Regular )
+				else if ( guild.Type != GuildType.Regular )
 					pm.SendLocalizedMessage( 1042161 ); // You cannot join a faction because your guild is an Order or Chaos type.
 				else if ( !Guild.NewGuildSystem && guild.Enemies != null && guild.Enemies.Count > 0 )	//CAN join w/wars in new system
 					pm.SendLocalizedMessage( 1005056 ); // You cannot join a faction with active Wars
@@ -552,7 +552,7 @@ namespace Server.Factions
 			if ( pl == null || !pl.IsLeaving )
 				return false;
 
-			if ( (pl.Leaving + LeavePeriod) >= DateTime.Now )
+			if ( (pl.Leaving + LeavePeriod) >= DateTime.UtcNow )
 				return false;
 
 			mob.SendLocalizedMessage( 1005163 ); // You have now quit your faction
@@ -833,12 +833,12 @@ namespace Server.Factions
 			{
 				Sigil sigil = sigils[i];
 
-				if ( !sigil.IsBeingCorrupted && sigil.GraceStart != DateTime.MinValue && (sigil.GraceStart + Sigil.CorruptionGrace) < DateTime.Now )
+				if ( !sigil.IsBeingCorrupted && sigil.GraceStart != DateTime.MinValue && (sigil.GraceStart + Sigil.CorruptionGrace) < DateTime.UtcNow )
 				{
 					if ( sigil.LastMonolith is StrongholdMonolith && ( sigil.Corrupted == null || sigil.LastMonolith.Faction != sigil.Corrupted ))
 					{
 						sigil.Corrupting = sigil.LastMonolith.Faction;
-						sigil.CorruptionStart = DateTime.Now;
+						sigil.CorruptionStart = DateTime.UtcNow;
 					}
 					else
 					{
@@ -851,19 +851,19 @@ namespace Server.Factions
 
 				if ( sigil.LastMonolith == null || sigil.LastMonolith.Sigil == null )
 				{
-					if ( (sigil.LastStolen + Sigil.ReturnPeriod) < DateTime.Now )
+					if ( (sigil.LastStolen + Sigil.ReturnPeriod) < DateTime.UtcNow )
 						sigil.ReturnHome();
 				}
 				else
 				{
-					if ( sigil.IsBeingCorrupted && (sigil.CorruptionStart + Sigil.CorruptionPeriod) < DateTime.Now )
+					if ( sigil.IsBeingCorrupted && (sigil.CorruptionStart + Sigil.CorruptionPeriod) < DateTime.UtcNow )
 					{
 						sigil.Corrupted = sigil.Corrupting;
 						sigil.Corrupting = null;
 						sigil.CorruptionStart = DateTime.MinValue;
 						sigil.GraceStart = DateTime.MinValue;
 					}
-					else if ( sigil.IsPurifying && (sigil.PurificationStart + Sigil.PurificationPeriod) < DateTime.Now )
+					else if ( sigil.IsPurifying && (sigil.PurificationStart + Sigil.PurificationPeriod) < DateTime.UtcNow )
 					{
 						sigil.PurificationStart = DateTime.MinValue;
 						sigil.Corrupted = null;
@@ -884,25 +884,28 @@ namespace Server.Factions
 		public const double SkillLossFactor = 1.0 / 3;
 		public static readonly TimeSpan SkillLossPeriod = TimeSpan.FromMinutes( 20.0 );
 
-		private static Hashtable m_SkillLoss = new Hashtable();
+		private static Dictionary<Mobile, SkillLossContext> m_SkillLoss = new Dictionary<Mobile, SkillLossContext>();
 
 		private class SkillLossContext
 		{
 			public Timer m_Timer;
-			public ArrayList m_Mods;
+			public List<SkillMod> m_Mods;
+		}
+
+		public static bool InSkillLoss( Mobile mob )
+		{
+			return m_SkillLoss.ContainsKey( mob );
 		}
 
 		public static void ApplySkillLoss( Mobile mob )
 		{
-			SkillLossContext context = (SkillLossContext)m_SkillLoss[mob];
-
-			if ( context != null )
+			if ( InSkillLoss( mob ) )
 				return;
 
-			context = new SkillLossContext();
+			SkillLossContext context = new SkillLossContext();
 			m_SkillLoss[mob] = context;
 
-			ArrayList mods = context.m_Mods = new ArrayList();
+			List<SkillMod> mods = context.m_Mods = new List<SkillMod>();
 
 			for ( int i = 0; i < mob.Skills.Length; ++i )
 			{
@@ -928,18 +931,17 @@ namespace Server.Factions
 
 		public static bool ClearSkillLoss( Mobile mob )
 		{
-			SkillLossContext context = (SkillLossContext)m_SkillLoss[mob];
+			SkillLossContext context;
 
-			if ( context == null ) {
+			if ( !m_SkillLoss.TryGetValue( mob, out context ) )
 				return false;
-			}
 
 			m_SkillLoss.Remove( mob );
 
-			ArrayList mods = context.m_Mods;
+			List<SkillMod> mods = context.m_Mods;
 
 			for ( int i = 0; i < mods.Count; ++i )
-				mob.RemoveSkillMod( (SkillMod) mods[i] );
+				mob.RemoveSkillMod( mods[i] );
 
 			context.m_Timer.Stop();
 
@@ -1101,6 +1103,11 @@ namespace Server.Factions
 			if ( victimState == null )
 				return;
 
+			#region Dueling
+			if ( victim.Region.IsPartOf( typeof( Engines.ConPVP.SafeZone ) ) )
+				return;
+			#endregion
+
 			if ( killer == victim || killerState.Faction != victimState.Faction )
 				ApplySkillLoss( victim );
 
@@ -1142,6 +1149,8 @@ namespace Server.Factions
 
 					if ( victimState.CanGiveSilverTo( killer ) )
 					{
+						PowerFactionItem.CheckSpawn( killer, victim );
+
 						if ( victimState.KillPoints > 0 )
 						{
 							victimState.IsActive = true;

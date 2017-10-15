@@ -1,12 +1,12 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server.Items;
 
 namespace Server.Mobiles
 {
 	public class SBLeatherArmor: SBInfo
 	{
-		private ArrayList m_BuyInfo = new InternalBuyInfo();
+		private List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
 		private IShopSellInfo m_SellInfo = new InternalSellInfo();
 
 		public SBLeatherArmor()
@@ -14,9 +14,9 @@ namespace Server.Mobiles
 		}
 
 		public override IShopSellInfo SellInfo { get { return m_SellInfo; } }
-		public override ArrayList BuyInfo { get { return m_BuyInfo; } }
+		public override List<GenericBuyInfo> BuyInfo { get { return m_BuyInfo; } }
 
-		public class InternalBuyInfo : ArrayList
+		public class InternalBuyInfo : List<GenericBuyInfo>
 		{
 			public InternalBuyInfo()
 			{
@@ -43,7 +43,6 @@ namespace Server.Mobiles
 				Add( typeof( LeatherGorget ), 37 );
 				Add( typeof( LeatherLegs ), 40 );
 				Add( typeof( LeatherCap ), 5 );
-
 
 				Add( typeof( FemaleLeatherChest ), 18 );
 				Add( typeof( FemaleStuddedChest ), 25 );

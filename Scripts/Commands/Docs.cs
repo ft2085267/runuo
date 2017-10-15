@@ -28,11 +28,11 @@ namespace Server.Commands
 			Network.NetState.FlushAll();
 			Network.NetState.Pause();
 
-			DateTime startTime = DateTime.Now;
+			DateTime startTime = DateTime.UtcNow;
 
 			bool generated = Document();
 
-			DateTime endTime = DateTime.Now;
+			DateTime endTime = DateTime.UtcNow;
 
 			Network.NetState.Resume();
 
@@ -1396,7 +1396,7 @@ namespace Server.Commands
 									html.Write( "&quot;" );
 								else if( c == '\'' )
 									html.Write( "&apos;" );
-								else if( c >= 0x20 && c < 0x80 )
+								else if( c >= 0x20 && c < 0x7F )
 									html.Write( c );
 								else
 									html.Write( "&#{0};", (int)c );
@@ -2421,10 +2421,11 @@ namespace Server.Commands
 			if( type.IsGenericType )
 			{
 				int index = type.Name.IndexOf( '`' );
-				string rootType = type.Name.Substring( 0, index );
 
 				if( index > 0 )
 				{
+					string rootType = type.Name.Substring( 0, index );
+
 					StringBuilder nameBuilder = new StringBuilder( rootType );
 					StringBuilder fnamBuilder = new StringBuilder( "docs/types/" + Docs.SanitizeType( rootType ) );
 					StringBuilder linkBuilder;

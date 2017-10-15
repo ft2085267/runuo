@@ -3,6 +3,7 @@ using System.Collections;
 using Server.Network;
 using Server.Items;
 using Server.Mobiles;
+using Server.Regions;
 using Server.Targeting;
 
 namespace Server.Spells.Ninjitsu
@@ -28,7 +29,8 @@ namespace Server.Spells.Ninjitsu
 
 		public override bool CheckCast()
 		{
-			if ( !Caster.Hidden || Caster.AllowedStealthSteps <= 0 )
+			PlayerMobile pm = Caster as PlayerMobile; // IsStealthing should be moved to Server.Mobiles
+			if ( !pm.IsStealthing )
 			{
 				Caster.SendLocalizedMessage( 1063087 ); // You must be in stealth mode to use this ability.
 				return false;
@@ -55,7 +57,12 @@ namespace Server.Spells.Ninjitsu
 
 			SpellHelper.GetSurfaceTop( ref p );
 
-			if ( !Caster.Hidden || Caster.AllowedStealthSteps <= 0 )
+			Point3D from = Caster.Location;
+			Point3D to = new Point3D( p );
+
+			PlayerMobile pm = Caster as PlayerMobile; // IsStealthing should be moved to Server.Mobiles
+
+			if ( !pm.IsStealthing )
 			{
 				Caster.SendLocalizedMessage( 1063087 ); // You must be in stealth mode to use this ability.
 			}
@@ -67,17 +74,20 @@ namespace Server.Spells.Ninjitsu
 			{
 				Caster.SendLocalizedMessage( 502359, "", 0x22 ); // Thou art too encumbered to move.
 			}
-			else if ( !SpellHelper.CheckTravel( Caster, TravelCheckType.TeleportFrom ) || !SpellHelper.CheckTravel( Caster, map, new Point3D( p ), TravelCheckType.TeleportTo ))
+			else if ( !SpellHelper.CheckTravel( Caster, TravelCheckType.TeleportFrom ) || !SpellHelper.CheckTravel( Caster, map, to, TravelCheckType.TeleportTo ))
 			{
 			}
 			else if ( map == null || !map.CanSpawnMobile( p.X, p.Y, p.Z ) )
 			{
 				Caster.SendLocalizedMessage( 502831 ); // Cannot teleport to that spot.
 			}
-			else if ( SpellHelper.CheckMulti( new Point3D( p ), map ) )
+			else if ( SpellHelper.CheckMulti( to, map, true, 5 ) )
 			{
-				// TODO: Cannot shadowjump within 5 tiles from any house.
 				Caster.SendLocalizedMessage( 502831 ); // Cannot teleport to that spot.
+			}
+			else if ( Region.Find( to, map ).GetRegion( typeof( HouseRegion ) ) != null )
+			{
+				Caster.SendLocalizedMessage( 502829 ); // Cannot teleport to that spot.
 			}
 			else if ( CheckSequence() )
 			{
@@ -85,20 +95,18 @@ namespace Server.Spells.Ninjitsu
 
 				Mobile m = Caster;
 
-				Point3D from = m.Location;
-				Point3D to = new Point3D( p );
-
 				m.Location = to;
 				m.ProcessDelta();
 
 				Effects.SendLocationParticles( EffectItem.Create( from, m.Map, EffectItem.DefaultDuration ), 0x3728, 10, 10, 2023 );
 
 				m.PlaySound( 0x512 );
+				
+				Server.SkillHandlers.Stealth.OnUse( m ); // stealth check after the a jump
 			}
 
 			FinishSequence();
 		}
-
 		public class InternalTarget : Target
 		{
 			private Shadowjump m_Owner;
@@ -119,8 +127,6 @@ namespace Server.Spells.Ninjitsu
 			protected override void OnTargetFinish( Mobile from )
 			{
 				m_Owner.FinishSequence();
-
-				Server.SkillHandlers.Stealth.OnUse( from );
 			}
 		}
 	}

@@ -1,12 +1,12 @@
 using System; 
-using System.Collections; 
+using System.Collections.Generic; 
 using Server.Items; 
 
 namespace Server.Mobiles 
 { 
 	public class SBVagabond : SBInfo
 	{
-		private ArrayList m_BuyInfo = new InternalBuyInfo();
+		private List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
 		private IShopSellInfo m_SellInfo = new InternalSellInfo();
 
 		public SBVagabond()
@@ -14,9 +14,9 @@ namespace Server.Mobiles
 		}
 
 		public override IShopSellInfo SellInfo { get { return m_SellInfo; } }
-		public override ArrayList BuyInfo { get { return m_BuyInfo; } }
+		public override List<GenericBuyInfo> BuyInfo { get { return m_BuyInfo; } }
 
-		public class InternalBuyInfo : ArrayList
+		public class InternalBuyInfo : List<GenericBuyInfo>
 		{
 			public InternalBuyInfo()
 			{
@@ -40,10 +40,6 @@ namespace Server.Mobiles
 				Add( new GenericBuyInfo( typeof( Tourmaline ), 75, 20, 0xF2D, 0 ) );
 				Add( new GenericBuyInfo( typeof( Amber ), 50, 20, 0xF25, 0 ) );
 				Add( new GenericBuyInfo( typeof( Diamond ), 200, 20, 0xF26, 0 ) );
-
-				Add( new GenericBuyInfo( typeof( Board ), 3, 20, 0x1BD7, 0 ) );
-				Add( new GenericBuyInfo( typeof( IronIngot ), 6, 20, 0x1BF2, 0 ) );
-
 			}
 		}
 

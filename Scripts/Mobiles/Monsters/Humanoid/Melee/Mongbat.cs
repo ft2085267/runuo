@@ -42,6 +42,8 @@ namespace Server.Mobiles
 			MinTameSkill = -18.9;
 		}
 
+		public override bool CanFly { get { return true; } }
+
 		public override void GenerateLoot()
 		{
 			AddLoot( LootPack.Poor );

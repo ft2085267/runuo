@@ -13,6 +13,7 @@ namespace Server.Spells.Bushido
 		public abstract int RequiredMana{ get; }
 
 		public override SkillName CastSkill{ get{ return SkillName.Bushido; } }
+		public override SkillName DamageSkill{ get{ return SkillName.Bushido; } }
 
 		public override bool ClearHandsOnCast{ get{ return false; } }
 		public override bool BlocksMovement{ get{ return false; } }
@@ -35,7 +36,6 @@ namespace Server.Spells.Bushido
 			if ( from.NetState == null )
 				return false;
 
-			//return ( (from.NetState.Flags & 0x10) != 0 );
 			return from.NetState.SupportsExpansion( Expansion.SE );
 		}
 

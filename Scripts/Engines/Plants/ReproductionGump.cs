@@ -101,7 +101,7 @@ namespace Server.Engines.Plants
 			PlantSystem system = m_Plant.PlantSystem;
 			int totalSeeds = system.AvailableSeeds + system.LeftSeeds;
 
-			if ( !m_Plant.IsCrossable || totalSeeds == 0 )
+			if ( !m_Plant.Reproduces || totalSeeds == 0 )
 			{
 				AddLabel( x + 5, y, 0x21, "X" );
 			}
@@ -116,9 +116,15 @@ namespace Server.Engines.Plants
 		{
 			Mobile from = sender.Mobile;
 
-			if ( info.ButtonID == 0 || m_Plant.Deleted || m_Plant.PlantStatus >= PlantStatus.DecorativePlant || m_Plant.PlantStatus == PlantStatus.BowlOfDirt || !from.InRange( m_Plant.GetWorldLocation(), 3 ) )
+			if ( info.ButtonID == 0 || m_Plant.Deleted || m_Plant.PlantStatus >= PlantStatus.DecorativePlant || m_Plant.PlantStatus == PlantStatus.BowlOfDirt )
 				return;
 
+			if ( ( info.ButtonID >= 6 && info.ButtonID <= 8 ) && !from.InRange( m_Plant.GetWorldLocation(), 3 ) )
+			{
+				from.LocalOverheadMessage( MessageType.Regular, 0x3E9, 500446 ); // That is too far away.
+				return;
+			}
+			
 			if ( !m_Plant.IsUsableBy( from ) )
 			{
 				m_Plant.LabelTo( from, 1061856 ); // You must have the item in your backpack or locked down in order to use it.
@@ -232,7 +238,7 @@ namespace Server.Engines.Plants
 				{
 					PlantSystem system = m_Plant.PlantSystem;
 
-					if ( !m_Plant.IsCrossable )
+					if ( !m_Plant.Reproduces )
 					{
 						m_Plant.LabelTo( from, 1053060 ); // Mutated plants do not produce seeds!
 					}

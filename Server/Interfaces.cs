@@ -19,7 +19,8 @@
  ***************************************************************************/
 
 using System;
-using System.Collections;
+using System.Collections.Generic;
+using Server.Mobiles;
 
 namespace Server.Mobiles
 {
@@ -39,8 +40,8 @@ namespace Server
 {
 	public interface IVendor
 	{
-		bool OnBuyItems( Mobile from, ArrayList list );
-		bool OnSellItems( Mobile from, ArrayList list );
+		bool OnBuyItems( Mobile from, List<BuyItemResponse> list );
+		bool OnSellItems( Mobile from, List<SellItemResponse> list );
 
 		DateTime LastRestock{ get; set; }
 		TimeSpan RestockDelay{ get; }
@@ -93,5 +94,23 @@ namespace Server
 		void OnStamChanged( Mobile m );
 		void OnManaChanged( Mobile m );
 		void OnStatsQuery( Mobile beholder, Mobile beheld );
+	}
+
+	public interface ISpawner
+	{
+		bool UnlinkOnTaming { get; }
+		Point3D HomeLocation { get; }
+		int HomeRange { get; }
+
+		void Remove(ISpawnable spawn);
+	}
+
+	public interface ISpawnable : IEntity
+	{
+		void OnBeforeSpawn(Point3D location, Map map);
+		void MoveToWorld(Point3D location, Map map);
+		void OnAfterSpawn();
+
+		ISpawner Spawner { get; set; }
 	}
 }

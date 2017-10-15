@@ -337,8 +337,8 @@ namespace Server.Items
 		public override int BasePoisonResistance{ get{ return 8; } }
 		public override int BaseEnergyResistance{ get{ return 8; } }
 
-		public override int InitMinHits{ get{ return 7; } }
-		public override int InitMaxHits{ get{ return 12; } }
+		public override int InitMinHits{ get{ return ( Core.ML ? 14 : 7 ); } }
+		public override int InitMaxHits{ get{ return ( Core.ML ? 28 : 12 ); } }
 
 		[Constructable]
 		public SkullCap() : this( 0 )
@@ -728,7 +728,7 @@ namespace Server.Items
 			return true;
 		}
 
-		public override void OnAdded( object parent )
+		public override void OnAdded(IEntity parent)
 		{
 			base.OnAdded( parent );
 
@@ -753,8 +753,8 @@ namespace Server.Items
 
 			int version = reader.ReadInt();
 
-			if ( Hue != 0x8A4 )
-				Hue = 0x8A4;
+			/*if ( Hue != 0x8A4 )
+				Hue = 0x8A4;*/
 		}
 	}
 
@@ -813,8 +813,8 @@ namespace Server.Items
 
 			int version = reader.ReadInt();
 
-			if ( Hue != 0 && (Hue < 2101 || Hue > 2130) )
-				Hue = GetRandomHue();
+			/*if ( Hue != 0 && (Hue < 2101 || Hue > 2130) )
+				Hue = GetRandomHue();*/
 		}
 	}
 

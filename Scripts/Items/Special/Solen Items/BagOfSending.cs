@@ -161,7 +161,7 @@ namespace Server.Items
 			}
 			else if( !this.IsChildOf( from.Backpack ) )
 			{
-				MessageHelper.SendLocalizedMessageTo( this, from, 1054107, 0x59 ); // The bag of sending must be in your backpack.
+				MessageHelper.SendLocalizedMessageTo(this, from, 1062334, 0x59); // The bag of sending must be in your backpack.
 			}
 			else if( this.Charges == 0 )
 			{
@@ -193,7 +193,7 @@ namespace Server.Items
 				}
 				else if( !m_Bag.IsChildOf( from.Backpack ) )
 				{
-					MessageHelper.SendLocalizedMessageTo( m_Bag, from, 1054107, 0x59 ); // The bag of sending must be in your backpack.
+					MessageHelper.SendLocalizedMessageTo(m_Bag, from, 1062334, 0x59); // The bag of sending must be in your backpack. 1054107 is gone from client, using generic response
 				}
 				else if ( m_Bag.Charges == 0 )
 				{
@@ -206,7 +206,7 @@ namespace Server.Items
 
 					if ( !item.IsChildOf( from.Backpack ) )
 					{
-						MessageHelper.SendLocalizedMessageTo( m_Bag, from, 1054152, 0x59 ); // You may only send items from your backpack to your bank box.
+						MessageHelper.SendLocalizedMessageTo(m_Bag, from, 1054152, 0x59); // You may only send items from your backpack to your bank box.
 					}
 					else if ( item is BagOfSending || item is Container )
 					{
@@ -216,7 +216,7 @@ namespace Server.Items
 					{
 						MessageHelper.SendLocalizedMessageTo( m_Bag, from, 1054108, 0x59 ); // The bag of sending rejects the cursed item.
 					}
-					else if ( !item.VerifyMove( from ) || item is Server.Engines.Quests.QuestItem )
+					else if ( !item.VerifyMove( from ) || item is Server.Engines.Quests.QuestItem || item.Nontransferable )
 					{
 						MessageHelper.SendLocalizedMessageTo( m_Bag, from, 1054109, 0x59 ); // The bag of sending rejects that item.
 					}

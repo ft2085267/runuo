@@ -4,6 +4,7 @@ using Server;
 using Server.Gumps;
 using Server.Multis;
 using Server.Mobiles;
+using Server.Regions;
 using Server.Targeting;
 
 namespace Server.Items
@@ -247,8 +248,12 @@ namespace Server.Items
 
 				if ( from.AccessLevel >= AccessLevel.GameMaster || reg.AllowHousing( from, p ) )
 					m_Placed = m_Entry.OnPlacement( from, p );
-				else if ( reg.IsPartOf( typeof( TreasureRegion ) ) )
+				else if ( reg.IsPartOf( typeof( TempNoHousingRegion ) ) )
+					from.SendLocalizedMessage( 501270 ); // Lord British has decreed a 'no build' period, thus you cannot build this house at this time.
+				else if ( reg.IsPartOf( typeof( TreasureRegion ) ) || reg.IsPartOf( typeof( HouseRegion ) ) )
 					from.SendLocalizedMessage( 1043287 ); // The house could not be created here.  Either something is blocking the house, or the house would not be on valid terrain.
+				else if ( reg.IsPartOf( typeof( HouseRaffleRegion ) ) )
+					from.SendLocalizedMessage( 1150493 ); // You must have a deed for this plot of land in order to build here.
 				else
 					from.SendLocalizedMessage( 501265 ); // Housing can not be created in this area.
 			}
@@ -367,45 +372,45 @@ namespace Server.Items
 						from.SendLocalizedMessage( 501271 ); // You already own a house, you may not place another!
 					}
 					else
-                    {
-                        BaseHouse house = ConstructHouse( from );
+					{
+						BaseHouse house = ConstructHouse( from );
 
-                        if ( house == null )
-                            return;
+						if ( house == null )
+							return;
 
-                        house.Price = m_Cost;
+						house.Price = m_Cost;
 
-                        if ( from.AccessLevel >= AccessLevel.GameMaster )
-                        {
-                            from.SendMessage( "{0} gold would have been withdrawn from your bank if you were not a GM.", m_Cost.ToString() );
-                        }
-                        else
-                        {
-                            if ( Banker.Withdraw( from, m_Cost ) )
-                            {
-                                from.SendLocalizedMessage( 1060398, m_Cost.ToString() ); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
-                            }
-                            else
-                            {
-                                house.RemoveKeys( from );
-                                house.Delete();
-                                from.SendLocalizedMessage( 1060646 ); // You do not have the funds available in your bank box to purchase this house.  Try placing a smaller house, or adding gold or checks to your bank box.
-                                return;
-                            }
-                        }
+						if ( from.AccessLevel >= AccessLevel.GameMaster )
+						{
+							from.SendMessage( "{0} gold would have been withdrawn from your bank if you were not a GM.", m_Cost.ToString() );
+						}
+						else
+						{
+							if ( Banker.Withdraw( from, m_Cost ) )
+							{
+								from.SendLocalizedMessage( 1060398, m_Cost.ToString() ); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
+							}
+							else
+							{
+								house.RemoveKeys( from );
+								house.Delete();
+								from.SendLocalizedMessage( 1060646 ); // You do not have the funds available in your bank box to purchase this house.  Try placing a smaller house, or adding gold or checks to your bank box.
+								return;
+							}
+						}
 
-                        house.MoveToWorld( center, from.Map );
+						house.MoveToWorld( center, from.Map );
 
-                        for ( int i = 0; i < toMove.Count; ++i )
-                        {
-                            object o = toMove[i];
+						for ( int i = 0; i < toMove.Count; ++i )
+						{
+							object o = toMove[ i ];
 
-                            if ( o is Mobile )
-                                ( (Mobile)o ).Location = house.BanLocation;
-                            else if ( o is Item )
-                                ( (Item)o ).Location = house.BanLocation;
-                        }
-                    }
+							if ( o is Mobile )
+								( (Mobile) o ).Location = house.BanLocation;
+							else if ( o is Item )
+								( (Item) o ).Location = house.BanLocation;
+						}
+					}
 
 					break;
 				}
@@ -425,7 +430,17 @@ namespace Server.Items
 				}
 				case HousePlacementResult.BadRegionTemp:
 				{
-					from.SendLocalizedMessage( 501270 ); //Lord British has decreed a 'no build' period, thus you cannot build this house at this time.
+					from.SendLocalizedMessage( 501270 ); // Lord British has decreed a 'no build' period, thus you cannot build this house at this time.
+					break;
+				}
+				case HousePlacementResult.BadRegionRaffle:
+				{
+					from.SendLocalizedMessage( 1150493 ); // You must have a deed for this plot of land in order to build here.
+					break;
+				}
+				case HousePlacementResult.InvalidCastleKeep:
+				{
+					from.SendLocalizedMessage( 1061122 ); // Castles and keeps cannot be created here.
 					break;
 				}
 			}
@@ -462,7 +477,7 @@ namespace Server.Items
 						{
 							MultiTileEntry entry = mcl.List[i];
 
-							int itemID = entry.m_ItemID & 0x3FFF;
+							int itemID = entry.m_ItemID;
 
 							if ( itemID >= 0xBA3 && itemID <= 0xC0E )
 							{
@@ -521,6 +536,16 @@ namespace Server.Items
 					from.SendLocalizedMessage( 501270 ); //Lord British has decreed a 'no build' period, thus you cannot build this house at this time.
 					break;
 				}
+				case HousePlacementResult.BadRegionRaffle:
+				{
+					from.SendLocalizedMessage( 1150493 ); // You must have a deed for this plot of land in order to build here.
+					break;
+				}
+				case HousePlacementResult.InvalidCastleKeep:
+				{
+					from.SendLocalizedMessage( 1061122 ); // Castles and keeps cannot be created here.
+					break;
+				}
 			}
 
 			return false;
@@ -553,7 +578,7 @@ namespace Server.Items
 				{
 					HousePlacementEntry e = (HousePlacementEntry)list[i];
 
-					if ( e.m_MultiID == (house.ItemID & 0x3FFF) )
+					if ( e.m_MultiID == house.ItemID )
 						return e;
 				}
 			}
@@ -561,7 +586,7 @@ namespace Server.Items
 			{
 				Hashtable table = (Hashtable)obj;
 
-				obj = table[house.ItemID & 0x3FFF];
+				obj = table[house.ItemID];
 
 				if ( obj is HousePlacementEntry )
 					return (HousePlacementEntry)obj;

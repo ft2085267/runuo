@@ -310,6 +310,11 @@ namespace Server.Gumps
 			Add( new GumpTextEntryLimited( x, y, width, height, hue, entryID, initialText, size ) );
 		}
 
+		public void AddItemProperty( int serial )
+		{
+			Add( new GumpItemProperty( serial ) );
+		}
+
 		public void Add( GumpEntry g )
 		{
 			if ( g.Parent != this )
@@ -325,6 +330,9 @@ namespace Server.Gumps
 
 		public void Remove( GumpEntry g )
 		{
+			if (g == null || !m_Entries.Contains(g))
+				return;
+
 			Invalidate();
 			m_Entries.Remove( g );
 			g.Parent = null;
@@ -365,8 +373,6 @@ namespace Server.Gumps
 		private static byte[] m_NoDispose = StringToBuffer( "{ nodispose }" );
 		private static byte[] m_NoResize = StringToBuffer( "{ noresize }" );
 
-		public static readonly ClientVersion UnpackVersion = new ClientVersion( "5.0.0a" );
-
 		private Packet Compile()
 		{
 			return Compile( null );
@@ -376,7 +382,7 @@ namespace Server.Gumps
 		{
 			IGumpWriter disp;
 
-			if ( ns != null && ns.Version != null && ns.Version >= UnpackVersion )
+			if ( ns != null && ns.Unpack )
 				disp = new DisplayGumpPacked( this );
 			else
 				disp = new DisplayGumpFast( this );

@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using Server;
 using Server.Multis;
 using Server.Targeting;
+using Server.ContextMenus;
+using Server.Gumps;
 
 namespace Server.Items
 {
@@ -10,10 +13,11 @@ namespace Server.Items
 		bool Dye( Mobile from, DyeTub sender );
 	}
 
-	public class DyeTub : Item
+	public class DyeTub : Item, ISecurable
 	{
 		private bool m_Redyable;
 		private int m_DyedHue;
+		private SecureLevel m_SecureLevel;
 
 		public virtual CustomHuePicker CustomHuePicker{ get{ return null; } }
 
@@ -46,8 +50,9 @@ namespace Server.Items
 		{
 			base.Serialize( writer );
 
-			writer.Write( (int) 0 ); // version
-
+			writer.Write( (int) 1 ); // version
+			
+			writer.Write( (int)m_SecureLevel );
 			writer.Write( (bool) m_Redyable );
 			writer.Write( (int) m_DyedHue );
 		}
@@ -60,6 +65,11 @@ namespace Server.Items
 
 			switch ( version )
 			{
+				case 1:
+				{
+					m_SecureLevel = (SecureLevel)reader.ReadInt();
+					goto case 0;
+				}
 				case 0:
 				{
 					m_Redyable = reader.ReadBool();
@@ -71,7 +81,7 @@ namespace Server.Items
 		}
 
 		[CommandProperty( AccessLevel.GameMaster )]
-		public bool Redyable
+		public virtual bool Redyable
 		{
 			get
 			{
@@ -99,6 +109,19 @@ namespace Server.Items
 				}
 			}
 		}
+		
+		[CommandProperty( AccessLevel.GameMaster )]
+		public SecureLevel Level
+		{
+			get
+			{
+				return m_SecureLevel;
+			}
+			set
+			{
+				m_SecureLevel = value;
+			}
+		}
 
 		[Constructable] 
 		public DyeTub() : base( 0xFAB )
@@ -106,10 +129,19 @@ namespace Server.Items
 			Weight = 10.0;
 			m_Redyable = true;
 		}
+		
+		public override void GetContextMenuEntries( Mobile from, List<ContextMenuEntry> list )
+		{
+			base.GetContextMenuEntries( from, list );
+			SetSecureLevelEntry.AddTo( from, this, list );
+		}
 
 		public DyeTub( Serial serial ) : base( serial )
 		{
 		}
+
+		// Three metallic tubs now.
+		public virtual bool MetallicHues{ get { return false; } }
 
 		// Select the clothing to dye.
 		public virtual int TargetMessage{ get{ return 500859; } }
@@ -145,7 +177,11 @@ namespace Server.Items
 				{
 					Item item = (Item)targeted;
 
-					if ( item is IDyable && m_Tub.AllowDyables )
+					if ( item.QuestItem )
+					{
+						from.SendLocalizedMessage( 1151836 ); // You may not dye toggled quest items.
+					}
+					else if ( item is IDyable && m_Tub.AllowDyables )
 					{
 						if ( !from.InRange( m_Tub.GetWorldLocation(), 1 ) || !from.InRange( item.GetWorldLocation(), 1 ) )
 							from.SendLocalizedMessage( 500446 ); // That is too far away.
@@ -222,7 +258,7 @@ namespace Server.Items
 							from.PlaySound( 0x23E );
 						}
 					}
-					else if ( (item is BaseArmor && (((BaseArmor)item).MaterialType == ArmorMaterialType.Leather || ((BaseArmor)item).MaterialType == ArmorMaterialType.Studded) || item is ElvenBoots) && m_Tub.AllowLeather )
+					else if ( (item is BaseArmor && (((BaseArmor)item).MaterialType == ArmorMaterialType.Leather || ((BaseArmor)item).MaterialType == ArmorMaterialType.Studded) || item is ElvenBoots || item is WoodlandBelt) && m_Tub.AllowLeather )
 					{
 						if ( !from.InRange( m_Tub.GetWorldLocation(), 1 ) || !from.InRange( item.GetWorldLocation(), 1 ) )
 						{

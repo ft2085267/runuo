@@ -149,12 +149,11 @@ namespace Server.Gumps
 				AddButton( 135 + (half * 160), 115, 2437, 2438, 2 + (index * 6) + 1, GumpButtonType.Reply, 0 );
 				AddHtmlLocalized( 150 + (half * 160), 115, 100, 18, 1011298, false, false ); // Drop rune
 
-				if ( e != m_Book.Default )
-				{
-					// Set as default button
-					AddButton( 160 + (half * 140), 20, 2361, 2361, 2 + (index * 6) + 2, GumpButtonType.Reply, 0 );
-					AddHtmlLocalized( 175 + (half * 140), 15, 100, 18, 1011300, false, false ); // Set default
-				}
+				// Set as default button
+				int defButtonID = e != m_Book.Default ? 2361 : 2360;
+				
+				AddButton( 160 + (half * 140), 20, defButtonID, defButtonID, 2 + (index * 6) + 2, GumpButtonType.Reply, 0 );
+				AddHtmlLocalized( 175 + (half * 140), 15, 100, 18, 1011300, false, false ); // Set default
 
 				if ( Core.AOS )
 				{
@@ -239,6 +238,8 @@ namespace Server.Gumps
 				}
 				else
 				{
+					m_Book.Openers.Remove( from );
+					
 					from.SendLocalizedMessage( 502416 ); // That cannot be done while the book is locked down.
 				}
 			}
@@ -260,20 +261,25 @@ namespace Server.Gumps
 			Mobile from = state.Mobile;
 
 			if ( m_Book.Deleted || !from.InRange( m_Book.GetWorldLocation(), (Core.ML ? 3 : 1) ) || !Multis.DesignContext.Check( from ) )
+			{
+				m_Book.Openers.Remove( from );
 				return;
+			}
 
 			int buttonID = info.ButtonID;
 
 			if ( buttonID == 1 ) // Rename book
 			{
-				if ( m_Book.CheckAccess( from ) )
+				if ( !m_Book.IsLockedDown || from.AccessLevel >= AccessLevel.GameMaster )
 				{
 					from.SendLocalizedMessage( 502414 ); // Please enter a title for the runebook:
 					from.Prompt = new InternalPrompt( m_Book );
 				}
 				else
 				{
-					from.SendLocalizedMessage( 502413 ); // That cannot be done while the book is locked down.
+					m_Book.Openers.Remove( from );
+					
+					from.SendLocalizedMessage( 502413, null, 0x35 ); // That cannot be done while the book is locked down.
 				}
 			}
 			else
@@ -311,24 +317,28 @@ namespace Server.Gumps
 								}
 
 								m_Book.OnTravel();
-
 								new RecallSpell( from, m_Book, e, m_Book ).Cast();
+								
+								m_Book.Openers.Remove( from );
 							}
 
 							break;
 						}
 						case 1: // Drop rune
 						{
-							if ( m_Book.CheckAccess( from ) )
+							if ( !m_Book.IsLockedDown || from.AccessLevel >= AccessLevel.GameMaster )
 							{
 								m_Book.DropRune( from, e, index );
 
 								from.CloseGump( typeof( RunebookGump ) );
-								from.SendGump( new RunebookGump( from, m_Book ) );
+								if ( !Core.ML )
+									from.SendGump( new RunebookGump( from, m_Book ) );
 							}
 							else
 							{
-								from.SendLocalizedMessage( 502413 ); // That cannot be done while the book is locked down.
+								m_Book.Openers.Remove( from );
+								
+								from.SendLocalizedMessage( 502413, null, 0x35 ); // That cannot be done while the book is locked down.
 							}
 
 							break;
@@ -343,10 +353,6 @@ namespace Server.Gumps
 								from.SendGump( new RunebookGump( from, m_Book ) );
 
 								from.SendLocalizedMessage( 502417 ); // New default location set.
-							}
-							else
-							{
-								from.SendLocalizedMessage( 502413 ); // That cannot be done while the book is locked down.
 							}
 
 							break;
@@ -372,6 +378,8 @@ namespace Server.Gumps
 							{
 								from.SendLocalizedMessage( 500015 ); // You do not have that spell!
 							}
+							
+							m_Book.Openers.Remove( from );
 
 							break;
 						}
@@ -396,6 +404,8 @@ namespace Server.Gumps
 							{
 								from.SendLocalizedMessage( 500015 ); // You do not have that spell!
 							}
+							
+							m_Book.Openers.Remove( from );
 
 							break;
 						}
@@ -423,11 +433,15 @@ namespace Server.Gumps
 									from.SendLocalizedMessage( 500015 ); // You do not have that spell!
 								}
 							}
+							
+							m_Book.Openers.Remove( from );
 
 							break;
 						}
 					}
 				}
+				else
+					m_Book.Openers.Remove( from );
 			}
 		}
 	}

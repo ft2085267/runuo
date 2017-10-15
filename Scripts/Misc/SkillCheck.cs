@@ -1,6 +1,7 @@
 using System;
 using Server;
 using Server.Mobiles;
+using Server.Factions;
 
 namespace Server.Misc
 {
@@ -179,6 +180,9 @@ namespace Server.Misc
 
 		private static bool AllowGain( Mobile from, Skill skill, object obj )
 		{
+			if ( Core.AOS && Faction.InSkillLoss( from ) )	//Changed some time between the introduction of AoS and SE.
+				return false;
+
 			if ( AntiMacroCode && from is PlayerMobile && UseAntiMacro[skill.Info.SkillID] )
 				return ((PlayerMobile)from).AntiMacroCheck( skill, obj );
 			else
@@ -220,6 +224,13 @@ namespace Server.Misc
 						}
 					}
 				}
+
+				#region Scroll of Alacrity
+				PlayerMobile pm = from as PlayerMobile;
+
+				if ( pm != null && skill.SkillName == pm.AcceleratedSkill && pm.AcceleratedStart > DateTime.UtcNow )
+					toGain *= Utility.RandomMinMax(2, 5);
+				#endregion
 
 				if ( !from.Player || (skills.Total + toGain) <= skills.Cap )
 				{
@@ -324,7 +335,8 @@ namespace Server.Misc
 			}
 		}
 
-		private static TimeSpan m_StatGainDelay = TimeSpan.FromMinutes( 15.0 );
+		private static TimeSpan m_StatGainDelay = TimeSpan.FromMinutes( ( Core.ML ) ? 0.05 : 15 );
+		private static TimeSpan m_PetStatGainDelay = TimeSpan.FromMinutes( 5.0 );
 
 		public static void GainStat( Mobile from, Stat stat )
 		{
@@ -332,26 +344,39 @@ namespace Server.Misc
 			{
 				case Stat.Str:
 				{
-					if( (from.LastStrGain + m_StatGainDelay) >= DateTime.Now )
+					if ( from is BaseCreature && ((BaseCreature)from).Controlled ) {
+						if ( (from.LastStrGain + m_PetStatGainDelay) >= DateTime.UtcNow )
+							return;
+					}
+					else if( (from.LastStrGain + m_StatGainDelay) >= DateTime.UtcNow )
 						return;
 
-					from.LastStrGain = DateTime.Now;
+					from.LastStrGain = DateTime.UtcNow;
 					break;
 				}
 				case Stat.Dex:
 				{
-					if( (from.LastDexGain + m_StatGainDelay) >= DateTime.Now )
+					if ( from is BaseCreature && ((BaseCreature)from).Controlled ) {
+						if ( (from.LastDexGain + m_PetStatGainDelay) >= DateTime.UtcNow )
+							return;
+					}
+					else if( (from.LastDexGain + m_StatGainDelay) >= DateTime.UtcNow )
 						return;
 
-					from.LastDexGain = DateTime.Now;
+					from.LastDexGain = DateTime.UtcNow;
 					break;
 				}
 				case Stat.Int:
 				{
-					if( (from.LastIntGain + m_StatGainDelay) >= DateTime.Now )
+					if ( from is BaseCreature && ((BaseCreature)from).Controlled ) {
+						if ( (from.LastIntGain + m_PetStatGainDelay) >= DateTime.UtcNow )
+							return;
+					}
+
+					else if( (from.LastIntGain + m_StatGainDelay) >= DateTime.UtcNow )
 						return;
 
-					from.LastIntGain = DateTime.Now;
+					from.LastIntGain = DateTime.UtcNow;
 					break;
 				}
 			}

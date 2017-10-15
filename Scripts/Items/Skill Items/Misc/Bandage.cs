@@ -18,6 +18,11 @@ namespace Server.Items
 			get { return 0.1; }
 		}
 
+		public static void Initialize()
+		{
+			EventSink.BandageTargetRequest += new BandageTargetRequestEventHandler(EventSink_BandageTargetRequest);
+		}
+
 		[Constructable]
 		public Bandage() : this( 1 )
 		{
@@ -34,7 +39,7 @@ namespace Server.Items
 		{
 		}
 
-		public bool Dye( Mobile from, DyeTub sender )
+		public virtual bool Dye( Mobile from, DyeTub sender )
 		{
 			if ( Deleted )
 				return false;
@@ -74,6 +79,37 @@ namespace Server.Items
 			}
 		}
 
+		private static void EventSink_BandageTargetRequest(BandageTargetRequestEventArgs e)
+		{
+			Bandage b = e.Bandage as Bandage;
+
+			if (b == null || b.Deleted)
+				return;
+
+			Mobile from = e.Mobile;
+
+			if (from.InRange(b.GetWorldLocation(), Range))
+			{
+				Target t = from.Target;
+
+				if (t != null)
+				{
+					Target.Cancel(from);
+					from.Target = null;
+				}
+
+				from.RevealingAction();
+
+				from.SendLocalizedMessage(500948); // Who will you use the bandages on?
+
+				new InternalTarget(b).Invoke(from, e.Target);
+			}
+			else
+			{
+				from.SendLocalizedMessage(500295); // You are too far away to do that.
+			}
+		}
+
 		private class InternalTarget : Target
 		{
 			private Bandage m_Bandage;
@@ -94,7 +130,8 @@ namespace Server.Items
 					{
 						if ( BandageContext.BeginHeal( from, (Mobile)targeted ) != null )
 						{
-							m_Bandage.Consume();
+							if ( !Engines.ConPVP.DuelContext.IsFreeConsume( from ) )
+								m_Bandage.Consume();
 						}
 					}
 					else
@@ -102,10 +139,26 @@ namespace Server.Items
 						from.SendLocalizedMessage( 500295 ); // You are too far away to do that.
 					}
 				}
+				else if ( targeted is PlagueBeastInnard )
+				{
+					if ( ((PlagueBeastInnard) targeted).OnBandage( from ) )
+						m_Bandage.Consume();
+				}
 				else
 				{
 					from.SendLocalizedMessage( 500970 ); // Bandages can not be used on that.
 				}
+			}
+
+			protected override void OnNonlocalTarget( Mobile from, object targeted )
+			{
+				if ( targeted is PlagueBeastInnard )
+				{
+					if ( ((PlagueBeastInnard) targeted).OnBandage( from ) )
+						m_Bandage.Consume();
+				}
+				else
+					base.OnNonlocalTarget( from, targeted );
 			}
 		}
 	}
@@ -228,7 +281,16 @@ namespace Server.Items
 						{
 							Mobile master = petPatient.ControlMaster;
 
-							if ( master != null && master.InRange( petPatient, 3 ) )
+							if( master != null && m_Healer == master )
+							{
+								petPatient.ResurrectPet();
+
+								for ( int i = 0; i < petPatient.Skills.Length; ++i )
+								{
+									petPatient.Skills[i].Base -= 0.1;
+								}
+							}
+							else if ( master != null && master.InRange( petPatient, 3 ) )
 							{
 								healerNumber = 503255; // You are able to resurrect the creature.
 
@@ -447,10 +509,18 @@ namespace Server.Items
 				{
 					if ( Core.AOS && GetPrimarySkill( patient ) == SkillName.Veterinary )
 					{
-						//if ( dex >= 40 )
 							seconds = 2.0;
-						//else
-						//	seconds = 3.0;
+					}
+					else if ( Core.AOS )
+					{
+						if (dex < 204)
+						{		
+							seconds = 3.2-(Math.Sin((double)dex/130)*2.5) + resDelay;
+						}
+						else
+						{
+							seconds = 0.7 + resDelay;
+						}
 					}
 					else
 					{
@@ -467,8 +537,9 @@ namespace Server.Items
 
 				if ( context != null )
 					context.StopHeal();
-
-				context = new BandageContext( healer, patient, TimeSpan.FromSeconds( seconds ) );
+				seconds *= 1000;
+				
+				context = new BandageContext( healer, patient, TimeSpan.FromMilliseconds( seconds ) );
 
 				m_Table[healer] = context;
 

@@ -37,7 +37,7 @@ namespace Server.SkillHandlers
 			protected override void OnTargetFinish( Mobile from )
 			{
 				if ( m_SetSkillTime )
-					from.NextSkillTime = DateTime.Now;
+					from.NextSkillTime = Core.TickCount;
 			}
 
 			protected override void OnTarget( Mobile from, object targeted )
@@ -65,7 +65,7 @@ namespace Server.SkillHandlers
 						else
 							number = 500402; // You are too far away to beg from her.
 					}
-					else if ( from.Mounted ) // If we're on a mount, who would give us money?
+					else if ( !Core.ML && from.Mounted ) // If we're on a mount, who would give us money? TODO: guessed it's removed since ML
 					{
 						number = 500404; // They seem unwilling to give you any money.
 					}
@@ -167,7 +167,7 @@ namespace Server.SkillHandlers
 						m_Target.SendLocalizedMessage( 500404 ); // They seem unwilling to give you any money.
 					}
 
-					m_From.NextSkillTime = DateTime.Now + TimeSpan.FromSeconds( 10.0 );
+					m_From.NextSkillTime = Core.TickCount + 10000;
 				}
 			}
 		}

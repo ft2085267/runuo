@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Mobiles;
 using Server.Targeting;
@@ -59,7 +60,11 @@ namespace Server.SkillHandlers
 				{
 					m_Thief.SendLocalizedMessage( 1005584 ); // Both hands must be free to steal.
 				}
-				else if ( root is Mobile && ((Mobile)root).Player && IsInnocentTo( m_Thief, (Mobile)root ) && !IsInGuild( m_Thief ) )
+				else if ( m_Thief.Region.IsPartOf( typeof( Engines.ConPVP.SafeZone ) ) )
+				{
+					m_Thief.SendMessage( "You may not steal in this area." );
+				}
+				else if ( root is Mobile && ((Mobile)root).Player && !IsInGuild( m_Thief ) )
 				{
 					m_Thief.SendLocalizedMessage( 1005596 ); // You must be in the thieves guild to steal from other players.
 				}
@@ -105,7 +110,7 @@ namespace Server.SkillHandlers
 						{
 							m_Thief.SendLocalizedMessage( 1010581 ); //	You cannot steal the sigil when you are incognito
 						}
-						else if ( DisguiseGump.IsDisguised( m_Thief ) )
+						else if ( DisguiseTimers.IsDisguised( m_Thief ) )
 						{
 							m_Thief.SendLocalizedMessage( 1010583 ); //	You cannot steal the sigil while disguised
 						}
@@ -146,13 +151,13 @@ namespace Server.SkillHandlers
 							else
 							{
 								if ( sig.IsBeingCorrupted )
-									sig.GraceStart = DateTime.Now; // begin grace period
+									sig.GraceStart = DateTime.UtcNow; // begin grace period
 
 								m_Thief.SendLocalizedMessage( 1010586 ); // YOU STOLE THE SIGIL!!!   (woah, calm down now)
 
 								if ( sig.LastMonolith != null && sig.LastMonolith.Sigil != null ) {
 									sig.LastMonolith.Sigil = null;
-									sig.LastStolen = DateTime.Now;
+									sig.LastStolen = DateTime.UtcNow;
 								}
 
 								return sig;
@@ -316,7 +321,9 @@ namespace Server.SkillHandlers
 				{
 					from.AddToBackpack( stolen );
 
-					StolenItem.Add( stolen, m_Thief, root as Mobile );
+					if ( !( stolen is Container || stolen.Stackable ) ) { // do not return stolen containers or stackable items
+						StolenItem.Add( stolen, m_Thief, root as Mobile );
+					}
 				}
 
 				if ( caught )
@@ -377,6 +384,10 @@ namespace Server.SkillHandlers
 			{
 				m.SendLocalizedMessage( 1005584 ); // Both hands must be free to steal.
 			}
+			else if ( m.Region.IsPartOf( typeof( Engines.ConPVP.SafeZone ) ) )
+			{
+				m.SendMessage( "You may not steal in this area." );
+			}
 			else
 			{
 				m.Target = new Stealing.StealingTarget( m );
@@ -403,7 +414,7 @@ namespace Server.SkillHandlers
 		public Mobile Victim{ get{ return m_Victim; } }
 		public DateTime Expires{ get{ return m_Expires; } }
 
-		public bool IsExpired{ get{ return ( DateTime.Now >= m_Expires ); } }
+		public bool IsExpired{ get{ return ( DateTime.UtcNow >= m_Expires ); } }
 
 		public StolenItem( Item stolen, Mobile thief, Mobile victim )
 		{
@@ -411,10 +422,10 @@ namespace Server.SkillHandlers
 			m_Thief = thief;
 			m_Victim = victim;
 
-			m_Expires = DateTime.Now + StealTime;
+			m_Expires = DateTime.UtcNow + StealTime;
 		}
 
-		private static Queue m_Queue = new Queue();
+		private static Queue<StolenItem> m_Queue = new Queue<StolenItem>();
 
 		public static void Add( Item item, Mobile thief, Mobile victim )
 		{
@@ -459,7 +470,7 @@ namespace Server.SkillHandlers
 					else
 						si.m_Victim.SendLocalizedMessage( 1010463 ); // the item that was stolen from you falls to the ground.
 
-					si.m_Expires = DateTime.Now; // such a hack
+					si.m_Expires = DateTime.UtcNow; // such a hack
 				}
 			}
 		}
@@ -468,7 +479,7 @@ namespace Server.SkillHandlers
 		{
 			while ( m_Queue.Count > 0 )
 			{
-				StolenItem si = (StolenItem) m_Queue.Peek();
+				StolenItem si = m_Queue.Peek();
 
 				if ( si.IsExpired )
 					m_Queue.Dequeue();

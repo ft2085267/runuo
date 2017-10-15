@@ -25,11 +25,14 @@ namespace Server.Misc
 
 		public static void CrashGuard_OnCrash( CrashedEventArgs e )
 		{
+			if ( GenerateReport )
+				GenerateCrashReport( e );
+
+			World.WaitForWriteCompletion();
+
 			if ( SaveBackup )
 				Backup();
 
-			if ( GenerateReport )
-				GenerateCrashReport( e );
 
 			/*if ( Core.Service )
 				e.Close = true;
@@ -41,7 +44,7 @@ namespace Server.Misc
 		{
 			Console.Write( "Crash: Sending email..." );
 
-			MailMessage message = new MailMessage( "RunUO", Email.CrashAddresses );
+			MailMessage message = new MailMessage( Email.FromAddress, Email.CrashAddresses );
 
 			message.Subject = "Automated RunUO Crash Report";
 
@@ -187,7 +190,7 @@ namespace Server.Misc
 					op.WriteLine( "RunUO Version {0}.{1}, Build {2}.{3}", ver.Major, ver.Minor, ver.Build, ver.Revision );
 					op.WriteLine( "Operating System: {0}", Environment.OSVersion );
 					op.WriteLine( ".NET Framework: {0}", Environment.Version );
-					op.WriteLine( "Time: {0}", DateTime.Now );
+					op.WriteLine( "Time: {0}", DateTime.UtcNow );
 
 					try { op.WriteLine( "Mobiles: {0}", World.Mobiles.Count ); }
 					catch {}
@@ -234,7 +237,7 @@ namespace Server.Misc
 
 				Console.WriteLine( "done" );
 
-				if ( Email.CrashAddresses != null )
+				if ( Email.FromAddress != null && Email.CrashAddresses != null )
 					SendEmail( filePath );
 			}
 			catch
@@ -245,7 +248,7 @@ namespace Server.Misc
 
 		private static string GetTimeStamp()
 		{
-			DateTime now = DateTime.Now;
+			DateTime now = DateTime.UtcNow;
 
 			return String.Format( "{0}-{1}-{2}-{3}-{4}-{5}",
 					now.Day,

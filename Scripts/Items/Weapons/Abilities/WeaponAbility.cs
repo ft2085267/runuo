@@ -3,7 +3,7 @@ using System.Collections;
 using Server;
 using Server.Network;
 using Server.Spells;
-
+using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -141,6 +141,11 @@ namespace Server.Items
 
 			if ( from.Mana < mana )
 			{
+				if( ( from is BaseCreature ) && ( from as BaseCreature ).HasManaOveride )
+				{
+					return true;
+				}
+
 				from.SendLocalizedMessage( 1060181, mana.ToString() ); // You need ~1_MANA_REQUIREMENT~ mana to perform that attack
 				return false;
 			}
@@ -166,9 +171,12 @@ namespace Server.Items
 			if ( !from.Player )
 				return true;
 
-			int flags = (from.NetState == null) ? 0 : from.NetState.Flags;
+			NetState state = from.NetState;
 
-			if( RequiresSE && (flags & 0x10) == 0 )	//TODO: Convert to expansionInfo
+			if ( state == null )
+				return false;
+
+			if( RequiresSE && !state.SupportsExpansion( Expansion.SE ) )
 			{
 				from.SendLocalizedMessage( 1063456 ); // You must upgrade to Samurai Empire in order to use that ability.
 				return false;
@@ -185,6 +193,61 @@ namespace Server.Items
 				from.SendLocalizedMessage( 1063024 ); // You cannot perform this special move right now.
 				return false;
 			}
+
+			#region Dueling
+			string option = null;
+
+			if ( this is ArmorIgnore )
+				option = "Armor Ignore";
+			else if ( this is BleedAttack )
+				option = "Bleed Attack";
+			else if ( this is ConcussionBlow )
+				option = "Concussion Blow";
+			else if ( this is CrushingBlow )
+				option = "Crushing Blow";
+			else if ( this is Disarm )
+				option = "Disarm";
+			else if ( this is Dismount )
+				option = "Dismount";
+			else if ( this is DoubleStrike )
+				option = "Double Strike";
+			else if ( this is InfectiousStrike )
+				option = "Infectious Strike";
+			else if ( this is MortalStrike )
+				option = "Mortal Strike";
+			else if ( this is MovingShot )
+				option = "Moving Shot";
+			else if ( this is ParalyzingBlow )
+				option = "Paralyzing Blow";
+			else if ( this is ShadowStrike )
+				option = "Shadow Strike";
+			else if ( this is WhirlwindAttack )
+				option = "Whirlwind Attack";
+			else if ( this is RidingSwipe )
+				option = "Riding Swipe";
+			else if ( this is FrenziedWhirlwind )
+				option = "Frenzied Whirlwind";
+			else if ( this is Block )
+				option = "Block";
+			else if ( this is DefenseMastery )
+				option = "Defense Mastery";
+			else if ( this is NerveStrike )
+				option = "Nerve Strike";
+			else if ( this is TalonStrike )
+				option = "Talon Strike";
+			else if ( this is Feint )
+				option = "Feint";
+			else if ( this is DualWield )
+				option = "Dual Wield";
+			else if ( this is DoubleShot )
+				option = "Double Shot";
+			else if ( this is ArmorPierce )
+				option = "Armor Pierce";
+				
+
+			if ( option != null && !Engines.ConPVP.DuelContext.AllowSpecialAbility( from, option, true ) )
+				return false;
+			#endregion
 
 			return CheckSkills( from ) && CheckMana( from, false );
 		}

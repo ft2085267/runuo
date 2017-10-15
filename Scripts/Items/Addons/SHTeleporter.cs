@@ -31,7 +31,7 @@ namespace Server.Items
 			set { m_TeleOffset = value; }
 		}
 
-		[CommandProperty( AccessLevel.Counselor )]
+		[CommandProperty(AccessLevel.GameMaster)]
 		public Point3D TelePoint
 		{
 			get   { return new Point3D( Location.X + TeleOffset.X, Location.Y + TeleOffset.Y, Location.Z + TeleOffset.Z ); }
@@ -143,11 +143,11 @@ namespace Server.Items
 		{
 			World.Broadcast( 0x35, true, "Solen hives teleporters are being generated, please wait." );
 
-			DateTime startTime = DateTime.Now;
+			DateTime startTime = DateTime.UtcNow;
 
 			int count = new SHTeleporterCreator().CreateSHTeleporters();
 
-			DateTime endTime = DateTime.Now;
+			DateTime endTime = DateTime.UtcNow;
 
 			World.Broadcast( 0x35, true, "{0} solen hives teleporters have been created. The entire process took {1:F1} seconds.", count, (endTime - startTime).TotalSeconds );
 		}

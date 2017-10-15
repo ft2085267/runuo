@@ -35,7 +35,6 @@ namespace Server
 {
 	public static class Utility
 	{
-		private static Random m_Random = new Random();
 		private static Encoding m_UTF8, m_UTF8WithEncoding;
 
 		public static Encoding UTF8
@@ -146,23 +145,23 @@ namespace Server
 			return sb.ToString();
 		}
 
-        public static bool IPMatchCIDR( string cidr, IPAddress ip )
-        {
-			if ( ip.AddressFamily == AddressFamily.InterNetworkV6 )
+		public static bool IPMatchCIDR( string cidr, IPAddress ip )
+		{
+			if ( ip == null || ip.AddressFamily == AddressFamily.InterNetworkV6 )
 				return false;	//Just worry about IPv4 for now
 
 
 			/*
-            string[] str = cidr.Split( '/' );
+			string[] str = cidr.Split( '/' );
 
-            if ( str.Length != 2 )
-                return false;
+			if ( str.Length != 2 )
+				return false;
 
 			/* **************************************************
-            IPAddress cidrPrefix;
+			IPAddress cidrPrefix;
 
-            if ( !IPAddress.TryParse( str[0], out cidrPrefix ) )
-                return false;
+			if ( !IPAddress.TryParse( str[0], out cidrPrefix ) )
+				return false;
 			 * */
 
 			/*
@@ -180,7 +179,7 @@ namespace Server
 
 			uint cidrPrefix = OrderedAddressValue( bytes );
 
-            int cidrLength = Utility.ToInt32( str[1] );
+			int cidrLength = Utility.ToInt32( str[1] );
 			//The below solution is the fastest solution of the three
 
 			*/
@@ -273,19 +272,19 @@ namespace Server
 
 			uint cidrPrefix = OrderedAddressValue( bytes );
 
-            return IPMatchCIDR( cidrPrefix, ip, cidrLength );
-        }
+			return IPMatchCIDR( cidrPrefix, ip, cidrLength );
+		}
 
-        public static bool IPMatchCIDR( IPAddress cidrPrefix, IPAddress ip, int cidrLength )
-        {
-            if ( cidrPrefix == null || ip == null || cidrPrefix.AddressFamily == AddressFamily.InterNetworkV6 )	//Ignore IPv6 for now
-                return false;
+		public static bool IPMatchCIDR( IPAddress cidrPrefix, IPAddress ip, int cidrLength )
+		{
+			if ( cidrPrefix == null || ip == null || cidrPrefix.AddressFamily == AddressFamily.InterNetworkV6 )	//Ignore IPv6 for now
+				return false;
 
 			uint cidrValue = SwapUnsignedInt( (uint)GetLongAddressValue( cidrPrefix ) );
 			uint ipValue   = SwapUnsignedInt( (uint)GetLongAddressValue( ip ) );
 
 			return IPMatchCIDR( cidrValue, ipValue, cidrLength );
-        }
+		}
 
 		public static bool IPMatchCIDR( uint cidrPrefixValue, IPAddress ip, int cidrLength )
 		{
@@ -481,10 +480,10 @@ namespace Server
 		public static bool InsensitiveStartsWith( string first, string second )
 		{
 			return Insensitive.StartsWith( first, second );
-        }
+		}
 
-        #region To[Something]
-        public static bool ToBoolean( string value )
+		#region To[Something]
+		public static bool ToBoolean( string value )
 		{
 			bool b;
 			bool.TryParse( value, out b );
@@ -518,11 +517,27 @@ namespace Server
 				int.TryParse( value, out i );
 
 			return i;
-        }
-        #endregion
+		}
+		#endregion
 
-        #region Get[Something]
-        public static int GetInt32( string intString, int defaultValue )
+		#region Get[Something]
+		public static double GetXMLDouble(string doubleString, double defaultValue)
+		{
+			try
+			{
+				return XmlConvert.ToDouble(doubleString);
+			}
+			catch
+			{
+				double val;
+				if (double.TryParse(doubleString, out val))
+					return val;
+
+				return defaultValue;
+			}
+		}
+
+		public static int GetXMLInt32( string intString, int defaultValue )
 		{
 			try
 			{
@@ -530,22 +545,19 @@ namespace Server
 			}
 			catch
 			{
-				try
-				{
-					return Convert.ToInt32( intString );
-				}
-				catch
-				{
-					return defaultValue;
-				}
+				int val;
+				if ( int.TryParse( intString, out val ) )
+					return val;
+
+				return defaultValue;
 			}
 		}
 
-		public static DateTime GetDateTime( string dateTimeString, DateTime defaultValue )
+		public static DateTime GetXMLDateTime( string dateTimeString, DateTime defaultValue )
 		{
 			try
 			{
-				return XmlConvert.ToDateTime( dateTimeString, XmlDateTimeSerializationMode.Local );
+				return XmlConvert.ToDateTime( dateTimeString, XmlDateTimeSerializationMode.Utc );
 			}
 			catch
 			{
@@ -558,7 +570,24 @@ namespace Server
 			}
 		}
 
-		public static TimeSpan GetTimeSpan( string timeSpanString, TimeSpan defaultValue )
+		public static DateTimeOffset GetXMLDateTimeOffset( string dateTimeOffsetString, DateTimeOffset defaultValue )
+		{
+			try
+			{
+				return XmlConvert.ToDateTimeOffset( dateTimeOffsetString );
+			}
+			catch
+			{
+				DateTimeOffset d;
+
+				if( DateTimeOffset.TryParse( dateTimeOffsetString, out d ) )
+					return d;
+
+				return defaultValue;
+			}
+		}
+
+		public static TimeSpan GetXMLTimeSpan( string timeSpanString, TimeSpan defaultValue )
 		{
 			try
 			{
@@ -608,15 +637,11 @@ namespace Server
 #pragma warning disable 618
 			return address.Address;
 #pragma warning restore 618
-        }
-        #endregion
+		}
+		#endregion
 
-        public static double RandomDouble()
-		{
-			return m_Random.NextDouble();
-        }
-        #region In[...]Range
-        public static bool InRange( Point3D p1, Point3D p2, int range )
+		#region In[...]Range
+		public static bool InRange( Point3D p1, Point3D p2, int range )
 		{
 			return ( p1.m_X >= (p2.m_X - range) )
 				&& ( p1.m_X <= (p2.m_X + range) )
@@ -646,10 +671,10 @@ namespace Server
 				&& ( p1.X <= (p2.X + 18) )
 				&& ( p1.Y >= (p2.Y - 18) )
 				&& ( p1.Y <= (p2.Y + 18) );
-        }
+		}
+		#endregion
 
-        #endregion
-        public static Direction GetDirection( IPoint2D from, IPoint2D to )
+		public static Direction GetDirection( IPoint2D from, IPoint2D to )
 		{
 			int dx = to.X - from.X;
 			int dy = to.Y - from.Y;
@@ -687,16 +712,18 @@ namespace Server
 			}
 		}
 
-		public static bool CanMobileFit( int z, Tile[] tiles )
+		/* Should probably be rewritten to use an ITile interface
+
+		public static bool CanMobileFit( int z, StaticTile[] tiles )
 		{
 			int checkHeight = 15;
 			int checkZ = z;
 
 			for ( int i = 0; i < tiles.Length; ++i )
 			{
-				Tile tile = tiles[i];
+				StaticTile tile = tiles[i];
 
-				if ( ((checkZ + checkHeight) > tile.Z && checkZ < (tile.Z + tile.Height))/* || (tile.Z < (checkZ + checkHeight) && (tile.Z + tile.Height) > checkZ)*/ )
+				if ( ((checkZ + checkHeight) > tile.Z && checkZ < (tile.Z + tile.Height))*//* || (tile.Z < (checkZ + checkHeight) && (tile.Z + tile.Height) > checkZ)*//* )
 				{
 					return false;
 				}
@@ -709,16 +736,16 @@ namespace Server
 			return true;
 		}
 
-		public static bool IsInContact( Tile check, Tile[] tiles )
+		public static bool IsInContact( StaticTile check, StaticTile[] tiles )
 		{
 			int checkHeight = check.Height;
 			int checkZ = check.Z;
 
 			for ( int i = 0; i < tiles.Length; ++i )
 			{
-				Tile tile = tiles[i];
+				StaticTile tile = tiles[i];
 
-				if ( ((checkZ + checkHeight) > tile.Z && checkZ < (tile.Z + tile.Height))/* || (tile.Z < (checkZ + checkHeight) && (tile.Z + tile.Height) > checkZ)*/ )
+				if ( ((checkZ + checkHeight) > tile.Z && checkZ < (tile.Z + tile.Height))*//* || (tile.Z < (checkZ + checkHeight) && (tile.Z + tile.Height) > checkZ)*//* )
 				{
 					return true;
 				}
@@ -730,6 +757,7 @@ namespace Server
 
 			return false;
 		}
+		*/
 
 		public static object GetArrayCap( Array array, int index )
 		{
@@ -757,24 +785,27 @@ namespace Server
 			}
 		}
 
+		#region Random
 		//4d6+8 would be: Utility.Dice( 4, 6, 8 )
 		public static int Dice( int numDice, int numSides, int bonus )
 		{
 			int total = 0;
-			for (int i=0;i<numDice;++i)
-				total += Random( numSides ) + 1;
+
+			for (int i = 0; i < numDice; ++i)
+				total += RandomImpl.Next(numSides) + 1;
+
 			total += bonus;
 			return total;
 		}
 
 		public static int RandomList( params int[] list )
 		{
-			return list[m_Random.Next( list.Length )];
+			return list[RandomImpl.Next(list.Length)];
 		}
 
 		public static bool RandomBool()
 		{
-			return ( m_Random.Next( 2 ) == 0 );
+			return RandomImpl.NextBool();
 		}
 
 		public static int RandomMinMax( int min, int max )
@@ -790,32 +821,41 @@ namespace Server
 				return min;
 			}
 
-			return min + m_Random.Next( (max - min) + 1 );
+			return min + RandomImpl.Next((max - min) + 1);
 		}
 
 		public static int Random( int from, int count )
 		{
-			if ( count == 0 )
-			{
+			if ( count == 0 ) {
 				return from;
-			}
-			else if ( count > 0 )
-			{
-				return from + m_Random.Next( count );
-			}
-			else
-			{
-				return from - m_Random.Next( -count );
+			} else if ( count > 0 ) {
+				return from + RandomImpl.Next(count);
+			} else {
+				return from - RandomImpl.Next(-count);
 			}
 		}
 
 		public static int Random( int count )
 		{
-			return m_Random.Next( count );
+			return RandomImpl.Next(count);
 		}
+
+		public static void RandomBytes( byte[] buffer )
+		{
+			RandomImpl.NextBytes(buffer);
+		}
+
+		public static double RandomDouble()
+		{
+			return RandomImpl.NextDouble();
+		}
+		#endregion
 
 		#region Random Hues
 
+		/// <summary>
+		/// Random pink, blue, green, orange, red or yellow hue
+		/// </summary>
 		public static int RandomNondyedHue()
 		{
 			switch ( Random( 6 ) )
@@ -831,61 +871,97 @@ namespace Server
 			return 0;
 		}
 
+		/// <summary>
+		/// Random hue in the range 1201-1254
+		/// </summary>
 		public static int RandomPinkHue()
 		{
 			return Random( 1201, 54 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 1301-1354
+		/// </summary>
 		public static int RandomBlueHue()
 		{
 			return Random( 1301, 54 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 1401-1454
+		/// </summary>
 		public static int RandomGreenHue()
 		{
 			return Random( 1401, 54 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 1501-1554
+		/// </summary>
 		public static int RandomOrangeHue()
 		{
 			return Random( 1501, 54 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 1601-1654
+		/// </summary>
 		public static int RandomRedHue()
 		{
 			return Random( 1601, 54 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 1701-1754
+		/// </summary>
 		public static int RandomYellowHue()
 		{
 			return Random( 1701, 54 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 1801-1908
+		/// </summary>
 		public static int RandomNeutralHue()
 		{
 			return Random( 1801, 108 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 2001-2018
+		/// </summary>
 		public static int RandomSnakeHue()
 		{
 			return Random( 2001, 18 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 2101-2130
+		/// </summary>
 		public static int RandomBirdHue()
 		{
 			return Random( 2101, 30 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 2201-2224
+		/// </summary>
 		public static int RandomSlimeHue()
 		{
 			return Random( 2201, 24 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 2301-2318
+		/// </summary>
 		public static int RandomAnimalHue()
 		{
 			return Random( 2301, 18 );
 		}
 
+		/// <summary>
+		/// Random hue in the range 2401-2430
+		/// </summary>
 		public static int RandomMetalHue()
 		{
 			return Random( 2401, 30 );
@@ -901,9 +977,23 @@ namespace Server
 				return hue;
 		}
 
+		/// <summary>
+		/// Random hue in the range 2-1001
+		/// </summary>
 		public static int RandomDyedHue()
 		{
 			return Random( 2, 1000 );
+		}
+
+		/// <summary>
+		/// Random hue from 0x62, 0x71, 0x03, 0x0D, 0x13, 0x1C, 0x21, 0x30, 0x37, 0x3A, 0x44, 0x59
+		/// </summary>
+		public static int RandomBrightHue()
+		{
+			if ( Utility.RandomDouble() < 0.1  )
+				return Utility.RandomList( 0x62, 0x71 );
+
+			return Utility.RandomList( 0x03, 0x0D, 0x13, 0x1C, 0x21, 0x30, 0x37, 0x3A, 0x44, 0x59 );
 		}
 
 		//[Obsolete( "Depreciated, use the methods for the Mobile's race", false )]
@@ -1114,7 +1204,7 @@ namespace Server
 						bytes.Append( "  " );
 					}
 
-					if ( c >= 0x20 && c < 0x80 )
+					if ( c >= 0x20 && c < 0x7F )
 					{
 						chars.Append( (char)c );
 					}
@@ -1153,7 +1243,7 @@ namespace Server
 							bytes.Append( "  " );
 						}
 
-						if ( c >= 0x20 && c < 0x80 )
+						if ( c >= 0x20 && c < 0x7F )
 						{
 							chars.Append( (char)c );
 						}
@@ -1217,11 +1307,13 @@ namespace Server
 		{
 			AssignRandomHair( m, true );
 		}
+
 		public static void AssignRandomHair( Mobile m, int hue )
 		{
 			m.HairItemID = m.Race.RandomHair( m );
 			m.HairHue = hue;
 		}
+
 		public static void AssignRandomHair( Mobile m, bool randomHue )
 		{
 			m.HairItemID = m.Race.RandomHair( m );
@@ -1234,11 +1326,13 @@ namespace Server
 		{
 			AssignRandomFacialHair( m, true );
 		}
+
 		public static void AssignRandomFacialHair( Mobile m, int hue )
 		{
-			m.FacialHairHue = m.Race.RandomFacialHair( m );
+			m.FacialHairItemID = m.Race.RandomFacialHair( m );
 			m.FacialHairHue = hue;
 		}
+
 		public static void AssignRandomFacialHair( Mobile m, bool randomHue )
 		{
 			m.FacialHairItemID = m.Race.RandomFacialHair( m );
@@ -1247,17 +1341,10 @@ namespace Server
 				m.FacialHairHue = m.Race.RandomHairHue();
 		}
 
-#if MONO
-		public static List<TOutput> CastConvertList<TInput, TOutput>( List<TInput> list ) where TInput : class where TOutput : class
-		{
-			return list.ConvertAll<TOutput>( new  Converter<TInput, TOutput>( delegate( TInput value ) { return value as TOutput; } ) );
-		}
-#else
 		public static List<TOutput> CastConvertList<TInput, TOutput>( List<TInput> list ) where TOutput : TInput
 		{
 			return list.ConvertAll<TOutput>( new Converter<TInput, TOutput>( delegate( TInput value ) { return (TOutput)value; } ) );
 		}
-#endif
 
 		public static List<TOutput> SafeConvertList<TInput, TOutput>( List<TInput> list ) where TOutput : class
 		{

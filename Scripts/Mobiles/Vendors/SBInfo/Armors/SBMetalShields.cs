@@ -1,12 +1,12 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server.Items;
 
 namespace Server.Mobiles
 {
 	public class SBMetalShields : SBInfo
 	{
-		private ArrayList m_BuyInfo = new InternalBuyInfo();
+		private List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
 		private IShopSellInfo m_SellInfo = new InternalSellInfo();
 
 		public SBMetalShields()
@@ -14,9 +14,9 @@ namespace Server.Mobiles
 		}
 
 		public override IShopSellInfo SellInfo { get { return m_SellInfo; } }
-		public override ArrayList BuyInfo { get { return m_BuyInfo; } }
+		public override List<GenericBuyInfo> BuyInfo { get { return m_BuyInfo; } }
 
-		public class InternalBuyInfo : ArrayList
+		public class InternalBuyInfo : List<GenericBuyInfo>
 		{
 			public InternalBuyInfo()
 			{
@@ -26,7 +26,6 @@ namespace Server.Mobiles
 				Add( new GenericBuyInfo( typeof( HeaterShield ), 231, 20, 0x1B76, 0 ) );
 				Add( new GenericBuyInfo( typeof( WoodenKiteShield ), 70, 20, 0x1B78, 0 ) );
 				Add( new GenericBuyInfo( typeof( MetalShield ), 121, 20, 0x1B7B, 0 ) );
-
 			}
 		}
 

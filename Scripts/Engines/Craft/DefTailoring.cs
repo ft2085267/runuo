@@ -110,7 +110,7 @@ namespace Server.Engines.Craft
 			AddCraft( typeof( SkullCap ), 1011375, 1025444, 0.0, 25.0, typeof( Cloth ), 1044286, 2, 1044287 );
 			AddCraft( typeof( Bandana ), 1011375, 1025440, 0.0, 25.0, typeof( Cloth ), 1044286, 2, 1044287 );
 			AddCraft( typeof( FloppyHat ), 1011375, 1025907, 6.2, 31.2, typeof( Cloth ), 1044286, 11, 1044287 );
-			AddCraft( typeof( Cap ), 1011375, 1025909, -18.8, 6.2, typeof( Cloth ), 1044286, 11, 1044287 );
+			AddCraft( typeof( Cap ), 1011375, 1025909, 6.2, 31.2, typeof( Cloth ), 1044286, 11, 1044287 );
 			AddCraft( typeof( WideBrimHat ), 1011375, 1025908, 6.2, 31.2, typeof( Cloth ), 1044286, 12, 1044287 );
 			AddCraft( typeof( StrawHat ), 1011375, 1025911, 6.2, 31.2, typeof( Cloth ), 1044286, 10, 1044287 );
 			AddCraft( typeof( TallStrawHat ), 1011375, 1025910, 6.7, 31.7, typeof( Cloth ), 1044286, 13, 1044287 );
@@ -200,6 +200,33 @@ namespace Server.Engines.Craft
 				SetNeededExpansion( index, Expansion.SE );
 			}
 
+			if( Core.ML )
+			{
+				index = AddCraft( typeof( ElvenQuiver ), 1015283, 1032657, 65.0, 115.0, typeof( Leather ), 1044462, 28, 1044463 );
+				AddRecipe( index, 501 );
+				SetNeededExpansion( index, Expansion.ML );
+
+				index = AddCraft( typeof( QuiverOfFire ), 1015283, 1073109, 65.0, 115.0, typeof( Leather ), 1044462, 28, 1044463 );
+				AddRes( index, typeof( FireRuby ), 1032695, 15, 1042081 );
+				AddRecipe( index, 502 );
+				SetNeededExpansion( index, Expansion.ML );
+
+				index = AddCraft( typeof( QuiverOfIce ), 1015283, 1073110, 65.0, 115.0, typeof( Leather ), 1044462, 28, 1044463 );
+				AddRes( index, typeof( WhitePearl ), 1032694, 15, 1042081 );
+				AddRecipe( index, 503 );
+				SetNeededExpansion( index, Expansion.ML );
+
+				index = AddCraft( typeof( QuiverOfBlight ), 1015283, 1073111, 65.0, 115.0, typeof( Leather ), 1044462, 28, 1044463 );
+				AddRes( index, typeof( Blight ), 1032675, 10, 1042081 );
+				AddRecipe( index, 504 );
+				SetNeededExpansion( index, Expansion.ML );
+
+				index = AddCraft( typeof( QuiverOfLightning ), 1015283, 1073112, 65.0, 115.0, typeof( Leather ), 1044462, 28, 1044463 );
+				AddRes( index, typeof( Corruption ), 1032676, 10, 1042081 );
+				AddRecipe( index, 505 );
+				SetNeededExpansion( index, Expansion.ML );
+			}
+
 			AddCraft( typeof( OilCloth ), 1015283, 1041498, 74.6, 99.6, typeof( Cloth ), 1044286, 1, 1044287 );
 
 			if( Core.SE )
@@ -243,6 +270,33 @@ namespace Server.Engines.Craft
 			#endregion
 
 			#region Leather Armor
+
+			if ( Core.ML )
+			{
+				index = AddCraft( typeof( SpellWovenBritches ), 1015293, 1072929, 92.5, 117.5, typeof( Leather ), 1044462, 15, 1044463 );
+				AddRes( index, typeof( EyeOfTheTravesty ), 1032685, 1, 1044253 );
+				AddRes( index, typeof( Putrefication ), 1032678, 10, 1044253 );
+				AddRes( index, typeof( Scourge ), 1032677, 10, 1044253 );
+				AddRareRecipe( index, 506 );
+				ForceNonExceptional( index );
+				SetNeededExpansion( index, Expansion.ML );
+
+				index = AddCraft( typeof( SongWovenMantle ), 1015293, 1072931, 92.5, 117.5, typeof( Leather ), 1044462, 15, 1044463 );
+				AddRes( index, typeof( EyeOfTheTravesty ), 1032685, 1, 1044253 );
+				AddRes( index, typeof( Blight ), 1032675, 10, 1044253 );
+				AddRes( index, typeof( Muculent ), 1032680, 10, 1044253 );
+				AddRareRecipe( index, 507 );
+				ForceNonExceptional( index );
+				SetNeededExpansion( index, Expansion.ML );
+
+				index = AddCraft( typeof( StitchersMittens ), 1015293, 1072932, 92.5, 117.5, typeof( Leather ), 1044462, 15, 1044463 );
+				AddRes( index, typeof( CapturedEssence ), 1032686, 1, 1044253 );
+				AddRes( index, typeof( Corruption ), 1032676, 10, 1044253 );
+				AddRes( index, typeof( Taint ), 1032679, 10, 1044253 );
+				AddRareRecipe( index, 508 );
+				ForceNonExceptional( index );
+				SetNeededExpansion( index, Expansion.ML );
+			}
 
 			AddCraft( typeof( LeatherGorget ), 1015293, 1025063, 53.9, 78.9, typeof( Leather ), 1044462, 4, 1044463 );
 			AddCraft( typeof( LeatherCap ), 1015293, 1027609, 6.2, 31.2, typeof( Leather ), 1044462, 2, 1044463 );
@@ -326,6 +380,9 @@ namespace Server.Engines.Craft
 		
 			index = AddCraft( typeof( BoneChest ), 1049149, 1025199, 96.0, 121.0, typeof( Leather ), 1044462, 12, 1044463 );
 			AddRes( index, typeof( Bone ), 1049064, 10, 1049063 );
+
+			index = AddCraft(typeof(OrcHelm), 1049149, 1027947, 90.0, 115.0, typeof(Leather), 1044462, 6, 1044463);
+			AddRes(index, typeof(Bone), 1049064, 4, 1049063);
 			#endregion
 
 			// Set the overridable material

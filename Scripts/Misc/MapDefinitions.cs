@@ -20,6 +20,7 @@ namespace Server.Misc
 			RegisterMap( 2, 2, 2, 2304, 1600, 1, "Ilshenar",	MapRules.TrammelRules );
 			RegisterMap( 3, 3, 3, 2560, 2048, 1, "Malas",		MapRules.TrammelRules );
 			RegisterMap( 4, 4, 4, 1448, 1448, 1, "Tokuno",		MapRules.TrammelRules );
+			RegisterMap( 5, 5, 5, 1280, 4096, 1, "TerMur",		MapRules.TrammelRules );
 
 			RegisterMap( 0x7F, 0x7F, 0x7F, Map.SectorSize, Map.SectorSize, 1, "Internal", MapRules.Internal );
 
@@ -29,14 +30,17 @@ namespace Server.Misc
 			 * Defined:
 			 * RegisterMap( <index>, <mapID>, <fileIndex>, <width>, <height>, <season>, <name>, <rules> );
 			 *  - <index> : An unreserved unique index for this map
-			 *  - <mapID> : An identification number used in client communications. For any visible maps, this value must be from 0-3
-			 *  - <fileIndex> : A file identification number. For any visible maps, this value must be 0, 2, 3, or 4
+			 *  - <mapID> : An identification number used in client communications. For any visible maps, this value must be from 0-5
+			 *  - <fileIndex> : A file identification number. For any visible maps, this value must be from 0-5
 			 *  - <width>, <height> : Size of the map (in tiles)
+			 *  - <season> : Season of the map. 0 = Spring, 1 = Summer, 2 = Fall, 3 = Winter, 4 = Desolation
 			 *  - <name> : Reference name for the map, used in props gump, get/set commands, region loading, etc
 			 *  - <rules> : Rules and restrictions associated with the map. See documentation for details
 			*/
 
-			TileMatrixPatch.Enabled = false;	//OSI client patch 6.0.0.0
+			TileMatrixPatch.Enabled = false; // OSI Client Patch 6.0.0.0
+
+			MultiComponentList.PostHSFormat = true; // OSI Client Patch 7.0.9.0
 		}
 
 		public static void RegisterMap( int mapIndex, int mapID, int fileIndex, int width, int height, int season, string name, MapRules rules )

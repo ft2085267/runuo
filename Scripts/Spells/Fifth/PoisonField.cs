@@ -105,7 +105,7 @@ namespace Server.Spells.Fifth
 
 				m_Caster = caster;
 
-				m_End = DateTime.Now + duration;
+				m_End = DateTime.UtcNow + duration;
 
 				m_Timer = new InternalTimer( this, TimeSpan.FromSeconds( Math.Abs( val ) * 0.2 ), caster.InLOS( this ), canFit );
 				m_Timer.Start();
@@ -187,6 +187,9 @@ namespace Server.Spells.Fifth
 				if ( m.ApplyPoison( m_Caster, p ) == ApplyPoisonResult.Poisoned )
 					if ( SpellHelper.CanRevealCaster( m ) )
 						m_Caster.RevealingAction();
+
+				if ( m is BaseCreature )
+					( (BaseCreature) m ).OnHarmfulSpell( m_Caster );
 			}
 
 			public override bool OnMoveOver( Mobile m )
@@ -236,7 +239,7 @@ namespace Server.Spells.Fifth
 							Effects.SendLocationParticles( EffectItem.Create( m_Item.Location, m_Item.Map, EffectItem.DefaultDuration ), 0x376A, 9, 10, 5040 );
 						}
 					}
-					else if ( DateTime.Now > m_Item.m_End )
+					else if ( DateTime.UtcNow > m_Item.m_End )
 					{
 						m_Item.Delete();
 						Stop();

@@ -61,26 +61,26 @@ namespace Server.Spells.Spellweaving
 
 		private static bool IsSanctuary( Point3D p, Map m )
 		{
-			return (m == Map.Trammel || m == Map.Felucca) && p.X == 6267 && p.Y == 131 && p.Z == 5;
+			return (m == Map.Trammel || m == Map.Felucca) && p.X == 6267 && p.Y == 131;
 		}
 
 		private static bool IsValidLocation( Point3D location, Map map )
 		{
-			Tile lt = map.Tiles.GetLandTile( location.X, location.Y );         // Land   Tiles            
+			LandTile lt = map.Tiles.GetLandTile( location.X, location.Y );         // Land   Tiles            
 
 			if( IsValidTile( lt.ID ) && lt.Z == location.Z )
 				return true;
 
-			Tile[] tiles = map.Tiles.GetStaticTiles( location.X, location.Y ); // Static Tiles
+			StaticTile[] tiles = map.Tiles.GetStaticTiles( location.X, location.Y ); // Static Tiles
 
 			for( int i = 0; i < tiles.Length; ++i )
 			{
-				Tile t = tiles[i];
-				ItemData id = TileData.ItemTable[t.ID & 0x3FFF];
+				StaticTile t = tiles[i];
+				ItemData id = TileData.ItemTable[t.ID & TileData.MaxItemValue];
 
-				int tand = t.ID & 0x3FFF;
+				int tand = t.ID;
 
-				if( t.Z != location.Z )
+				if( t.Z + id.CalcHeight != location.Z )
 					continue;
 				else if( IsValidTile( tand ) )
 					return true;
@@ -90,7 +90,9 @@ namespace Server.Spells.Spellweaving
 
 			foreach( Item item in eable )
 			{
-				if( item == null || item.Z != location.Z )
+				ItemData id = item.ItemData;
+				
+				if( item == null || item.Z + id.CalcHeight != location.Z )
 					continue;
 				else if( IsValidTile( item.ItemID ) )
 				{
@@ -118,7 +120,7 @@ namespace Server.Spells.Spellweaving
 			//OSI Verified: Even enemies/combatants count
 			foreach( Mobile m in Caster.GetMobilesInRange( 1 ) )	//Range verified as 1
 			{
-				if ( m != Caster && Caster.CanBeBeneficial( m, false ) && Math.Abs( Caster.Skills.Spellweaving.Value - m.Skills.Spellweaving.Value ) <= 20 && !(m is Clone) )
+				if ( m != Caster && m is PlayerMobile && Caster.CanBeBeneficial( m, false ) && Math.Abs( Caster.Skills.Spellweaving.Value - m.Skills.Spellweaving.Value ) <= 20 && !(m is Clone) )
 				{
 					weavers.Add( m );
 				}
@@ -153,7 +155,7 @@ namespace Server.Spells.Spellweaving
 			{
 				to.SendLocalizedMessage( 1072828 ); // Your arcane focus is renewed.
 				focus.LifeSpan = duration;
-				focus.CreationTime = DateTime.Now;
+				focus.CreationTime = DateTime.UtcNow;
 				focus.StrengthBonus = strengthBonus;
 				focus.InvalidateProperties();
 				focus.SendTimeRemainingMessage( to );

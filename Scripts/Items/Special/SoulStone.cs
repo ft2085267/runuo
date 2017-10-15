@@ -5,6 +5,7 @@ using Server.Network;
 using Server.Accounting;
 using Server.Engines.VeteranRewards;
 using Server.Multis;
+using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -28,7 +29,7 @@ namespace Server.Items
 		public virtual int ActiveItemID
 		{
 			get { return m_ActiveItemID; }
-			set 
+			set
 			{
 				m_ActiveItemID = value;
 
@@ -41,19 +42,17 @@ namespace Server.Items
 		public virtual int InactiveItemID
 		{
 			get { return m_InactiveItemID; }
-			set 
-			{ 
+			set
+			{
 				m_InactiveItemID = value;
 
 				if( IsEmpty )
 					this.ItemID = m_InactiveItemID;
 			}
 		}
-	
-		public static readonly TimeSpan UseDelay = TimeSpan.FromDays( 1.0 );
 
-		private string m_Account;
-		private DateTime m_NextUse;
+		private string m_Account, m_LastUserName;
+		private DateTime m_NextUse; // TODO: unused, it's here not to break serialize/deserialize
 
 		private SkillName m_Skill;
 		private double m_SkillValue;
@@ -66,10 +65,10 @@ namespace Server.Items
 		}
 
 		[CommandProperty( AccessLevel.GameMaster )]
-		public DateTime NextUse
+		public string LastUserName
 		{
-			get{ return m_NextUse; }
-			set{ m_NextUse = value; }
+			get{ return m_LastUserName; }
+			set{ m_LastUserName = value; InvalidateProperties(); }
 		}
 
 		[CommandProperty( AccessLevel.GameMaster )]
@@ -127,17 +126,21 @@ namespace Server.Items
 			m_ActiveItemID = activeItemID;
 
 			m_Account = account;
-			m_NextUse = DateTime.MinValue;
 		}
 
 		public override void GetProperties( ObjectPropertyList list )
 		{
 			base.GetProperties( list );
 
-			if ( !this.IsEmpty )
-			{
-				list.Add( 1070721, "#{0}\t{1:0.0}", 1044060 + (int)this.Skill, this.SkillValue ); // Skill stored: ~1_skillname~ ~2_skillamount~
-			}
+			if ( !IsEmpty )
+				list.Add( 1070721, "#{0}\t{1:0.0}", AosSkillBonuses.GetLabel( Skill ), SkillValue ); // Skill stored: ~1_skillname~ ~2_skillamount~
+
+			string name = this.LastUserName;
+
+			if ( name == null )
+				name = String.Format( "#{0}", 1074235 ); // Unknown
+
+			list.Add( 1041602, "{0}", name ); // Owner: ~1_val~
 		}
 
 		private static bool CheckCombat( Mobile m, TimeSpan time )
@@ -146,7 +149,7 @@ namespace Server.Items
 			{
 				AggressorInfo info = m.Aggressed[i];
 
-				if ( DateTime.Now - info.LastCombatTime < time )
+				if ( DateTime.UtcNow - info.LastCombatTime < time )
 					return true;
 			}
 
@@ -155,7 +158,9 @@ namespace Server.Items
 
 		protected virtual bool CheckUse( Mobile from )
 		{
-			DateTime now = DateTime.Now;
+			DateTime now = DateTime.UtcNow;
+
+			PlayerMobile pm = from as PlayerMobile;
 
 			if ( this.Deleted || !this.IsAccessibleTo( from ) )
 			{
@@ -211,19 +216,15 @@ namespace Server.Items
 				from.SendLocalizedMessage( 1070735 ); // You may not use a Soulstone while your character is paralyzed.
 				return false;
 			}
-			else if ( now < this.NextUse )
+
+			#region Scroll of Alacrity
+			if ( pm.AcceleratedStart > DateTime.UtcNow )
 			{
-				TimeSpan time = this.NextUse - now;
-
-				if ( time.TotalHours > 0.0 )
-					from.SendLocalizedMessage( 1070736, ((int)time.TotalHours).ToString() ); // You must wait ~1_hours~ hours before you can use your Soulstone.
-				else if ( time.TotalMinutes > 0.0 )
-					from.SendLocalizedMessage( 1070737, ((int)time.TotalMinutes).ToString() ); // You must wait ~1_minutes~ minutes before you can use your Soulstone.
-				else
-					from.SendLocalizedMessage( 1070738, ((int)time.TotalSeconds).ToString() ); // You must wait ~1_seconds~ seconds before you can use your Soulstone.
-
+				from.SendLocalizedMessage(1078115); // You may not use a soulstone while your character is under the effects of a Scroll of Alacrity.
 				return false;
 			}
+			#endregion
+
 			else
 			{
 				return true;
@@ -301,7 +302,7 @@ namespace Server.Items
 						int y = ( p / 2 ) * 20 + 40;
 
 						AddButton( x, y, 0xFA5, 0xFA6, i + 1, GumpButtonType.Reply, 0 );
-						AddHtmlLocalized( x + 45, y + 2, 200, 20, 1044060 + i, 0x7FFF, false, false );
+						AddHtmlLocalized( x + 45, y + 2, 200, 20, AosSkillBonuses.GetLabel( skill.SkillName ), 0x7FFF, false, false );
 
 						n++;
 					}
@@ -356,19 +357,19 @@ namespace Server.Items
 				 * the stone, you must make sure your Skill Lock for the indicated skill is pointed downward.
 				 * Click the "Skills" button on your Paperdoll to access the Skill List, and double-check
 				 * your skill lock.<BR><BR>
-				 * 
+				 *
 				 * Once you activate the stone, all skill points in the indicated skill will be removed from
 				 * your character.  These skill points can later be retrieved.  IMPORTANT: When retrieving
 				 * skill points from a Soulstone, the Soulstone WILL REPLACE any existing skill points
 				 * already on your character!<BR><BR>
-				 * 
+				 *
 				 * This is an Account Bound Soulstone.  Skill pointsstored inside can be retrieved by any
 				 * character on the same account as the character who placed them into the stone.
 				 */
 				AddHtmlLocalized( 10, 42, 500, 110, 1061067, 0x7FFF, false, true );
 
 				AddHtmlLocalized( 10, 200, 390, 20, 1062297, 0x7FFF, false, false ); // Skill Chosen:
-				AddHtmlLocalized( 210, 200, 390, 20, 1044060 + skill.SkillID, 0x7FFF, false, false );
+				AddHtmlLocalized( 210, 200, 390, 20, AosSkillBonuses.GetLabel( skill.SkillName ), 0x7FFF, false, false );
 
 				AddHtmlLocalized( 10, 220, 390, 20, 1062298, 0x7FFF, false, false ); // Current Value:
 				AddLabel( 210, 220, 0x481, skill.Base.ToString( "0.0" ) );
@@ -430,6 +431,8 @@ namespace Server.Items
 
 				from.SendLocalizedMessage( 1070712 ); // You have successfully transferred your skill points into the Soulstone.
 
+				m_Stone.LastUserName = from.Name;
+
 				Effects.SendLocationParticles( EffectItem.Create( from.Location, from.Map, EffectItem.DefaultDuration ), 0, 0, 0, 0, 0, 5060, 0 );
 				Effects.PlaySound( from.Location, from.Map, 0x243 );
 
@@ -463,19 +466,19 @@ namespace Server.Items
 				 * the stone, you must make sure your Skill Lock for the indicated skill is pointed downward.
 				 * Click the "Skills" button on your Paperdoll to access the Skill List, and double-check
 				 * your skill lock.<BR><BR>
-				 * 
+				 *
 				 * Once you activate the stone, all skill points in the indicated skill will be removed from
 				 * your character.  These skill points can later be retrieved.  IMPORTANT: When retrieving
 				 * skill points from a Soulstone, the Soulstone WILL REPLACE any existing skill points
 				 * already on your character!<BR><BR>
-				 * 
+				 *
 				 * This is an Account Bound Soulstone.  Skill pointsstored inside can be retrieved by any
 				 * character on the same account as the character who placed them into the stone.
 				 */
 				AddHtmlLocalized( 10, 42, 500, 110, 1061067, 0x7FFF, false, true );
 
 				AddHtmlLocalized( 10, 200, 390, 20, 1070718, 0x7FFF, false, false ); // Skill Stored:
-				AddHtmlLocalized( 210, 200, 390, 20, 1044060 + (int)stone.Skill, 0x7FFF, false, false );
+				AddHtmlLocalized( 210, 200, 390, 20, AosSkillBonuses.GetLabel( stone.Skill ), 0x7FFF, false, false );
 
 				Skill fromSkill = from.Skills[stone.Skill];
 
@@ -546,7 +549,6 @@ namespace Server.Items
 						cannotAbsorb = true;
 				}
 
-				//if ( fromSkill.Lock != SkillLock.Up || ( from.SkillsTotal - fromSkill.BaseFixedPoint + (int)(skillValue * 10) > from.SkillsCap ) )
 				if ( cannotAbsorb )
 				{
 					// <CENTER>Unable to Absorb Selected Skill from Soulstone</CENTER>
@@ -591,6 +593,21 @@ namespace Server.Items
 					return;
 				}
 
+				#region Scroll of ALacrity
+				PlayerMobile pm = from as PlayerMobile;
+				if (pm.AcceleratedStart > DateTime.UtcNow)
+				{
+					// <CENTER>Unable to Absorb Selected Skill from Soulstone</CENTER>
+
+					/*You may not use a soulstone while your character is under the effects of a Scroll of Alacrity.*/
+
+					// Wrong message?!
+
+					from.SendGump(new ErrorGump(m_Stone, 1070717, 1078115));
+					return;
+				}
+				#endregion
+
 				if ( requiredAmount > 0 )
 				{
 					for ( int i = 0; i < from.Skills.Length; ++i )
@@ -614,9 +631,9 @@ namespace Server.Items
 				fromSkill.Base = skillValue;
 				m_Stone.SkillValue = 0.0;
 
-				m_Stone.NextUse = DateTime.Now + UseDelay;
-
 				from.SendLocalizedMessage( 1070713 ); // You have successfully absorbed the Soulstone's skill points.
+
+				m_Stone.LastUserName = from.Name;
 
 				Effects.SendLocationParticles( EffectItem.Create( from.Location, from.Map, EffectItem.DefaultDuration ), 0, 0, 0, 0, 0, 5060, 0 );
 				Effects.PlaySound( from.Location, from.Map, 0x243 );
@@ -654,10 +671,10 @@ namespace Server.Items
 				AddHtmlLocalized( 10, 12, 500, 20, 1070725, 0x7FFF, false, false ); // <CENTER>Confirm Soulstone Skill Removal</CENTER>
 
 				/* WARNING!<BR><BR>
-				 * 
+				 *
 				 * You are about to permanently remove all skill points stored in this Soulstone.
 				 * You WILL NOT absorb these skill points.  They will be DELETED.<BR><BR>
-				 * 
+				 *
 				 * Are you sure you wish to do this?  If not, press the Cancel button.
 				 */
 				AddHtmlLocalized( 10, 42, 500, 110, 1070724, 0x7FFF, false, true );
@@ -736,15 +753,19 @@ namespace Server.Items
 		{
 			base.Serialize( writer );
 
-			writer.WriteEncodedInt( 2 ); // version
+			writer.WriteEncodedInt( 3 ); // version
 
+			//version 3
+			writer.Write( (string) m_LastUserName );
+
+			//version 2
 			writer.Write( (int)m_Level );
 
 			writer.Write( m_ActiveItemID );
 			writer.Write( m_InactiveItemID );
 
 			writer.Write( (string) m_Account );
-			writer.Write( (DateTime) m_NextUse );
+			writer.Write( (DateTime) m_NextUse ); //TODO: delete it in a harmless way
 
 			writer.WriteEncodedInt( (int) m_Skill );
 			writer.Write( (double) m_SkillValue );
@@ -758,6 +779,11 @@ namespace Server.Items
 
 			switch( version )
 			{
+				case 3:
+					{
+						m_LastUserName = reader.ReadString();
+						goto case 2;
+					}
 				case 2:
 					{
 						m_Level = (SecureLevel)reader.ReadInt();
@@ -773,7 +799,7 @@ namespace Server.Items
 				case 0:
 					{
 						m_Account = reader.ReadString();
-						m_NextUse = reader.ReadDateTime();
+						m_NextUse = reader.ReadDateTime(); //TODO: delete it in a harmless way
 
 						m_Skill = (SkillName)reader.ReadEncodedInt();
 						m_SkillValue = reader.ReadDouble();
@@ -861,7 +887,7 @@ namespace Server.Items
 				}
 				else
 				{
-					ActiveItemID = ItemID;					
+					ActiveItemID = ItemID;
 				}
 
 				InactiveItemID = ActiveItemID;
@@ -908,7 +934,6 @@ namespace Server.Items
 		public BlueSoulstone( string account )
 			: base( account, 0x2ADC, 0x2ADD )
 		{
-					
 		}
 
 		public BlueSoulstone( Serial serial )
@@ -993,7 +1018,7 @@ namespace Server.Items
 			base.Deserialize( reader );
 
 			int version = reader.ReadInt();
-			
+
 			switch ( version )
 			{
 				case 1:

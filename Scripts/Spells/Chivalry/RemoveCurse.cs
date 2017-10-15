@@ -27,6 +27,17 @@ namespace Server.Spells.Chivalry
 		{
 		}
 
+		public override bool CheckCast()
+		{
+			if ( Engines.ConPVP.DuelContext.CheckSuddenDeath( Caster ) )
+			{
+				Caster.SendMessage( 0x22, "You cannot cast this spell when in sudden death." );
+				return false;
+			}
+
+			return base.CheckCast();
+		}
+
 		public override void OnCast()
 		{
 			Caster.Target = new InternalTarget( this );
@@ -81,7 +92,7 @@ namespace Server.Spells.Chivalry
 
 					m.Paralyzed = false;
 
-					EvilOmenSpell.CheckEffect( m );
+					EvilOmenSpell.TryEndEffect( m );
 					StrangleSpell.RemoveCurse( m );
 					CorpseSkinSpell.RemoveCurse( m );
 					CurseSpell.RemoveEffect( m );

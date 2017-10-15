@@ -237,7 +237,8 @@ namespace Server.Items
 					new PMEntry( new Point3D( 2701,  692, 5 ), 1012007 ), // Minoc
 					new PMEntry( new Point3D( 1828, 2948,-20), 1012008 ), // Trinsic
 					new PMEntry( new Point3D(  643, 2067, 5 ), 1012009 ), // Skara Brae
-					new PMEntry( new Point3D( 3563, 2139, 34), 1012010 ), // Magincia
+					/* Dynamic Z for Magincia to support both old and new maps. */
+					new PMEntry( new Point3D( 3563, 2139, Map.Trammel.GetAverageZ( 3563, 2139 ) ), 1012010 ), // (New) Magincia
 					new PMEntry( new Point3D( 3450, 2677, 25), 1078098 )  // New Haven
 				} );
 
@@ -251,7 +252,8 @@ namespace Server.Items
 					new PMEntry( new Point3D( 2701,  692, 5 ), 1012007 ), // Minoc
 					new PMEntry( new Point3D( 1828, 2948,-20), 1012008 ), // Trinsic
 					new PMEntry( new Point3D(  643, 2067, 5 ), 1012009 ), // Skara Brae
-					new PMEntry( new Point3D( 3563, 2139, 34), 1012010 ), // Magincia
+					/* Dynamic Z for Magincia to support both old and new maps. */
+					new PMEntry( new Point3D( 3563, 2139, Map.Felucca.GetAverageZ( 3563, 2139 ) ), 1012010 ), // (New) Magincia
 					new PMEntry( new Point3D( 2711, 2234, 0 ), 1019001 )  // Buccaneer's Den
 				} );
 
@@ -321,14 +323,14 @@ namespace Server.Items
 				}
 				else
 				{
-					int flags = mobile.NetState == null ? 0 : mobile.NetState.Flags;
+					ClientFlags flags = mobile.NetState == null ? ClientFlags.None : mobile.NetState.Flags;
 					bool young = mobile is PlayerMobile ? ((PlayerMobile)mobile).Young : false;
 
-					if ( Core.SE && (flags & 0x10) != 0 )
+					if ( Core.SE && (flags & ClientFlags.Tokuno) != 0 )
 						checkLists = young ? PMList.SEListsYoung : PMList.SELists;
-					else if ( Core.AOS && (flags & 0x8) != 0 )
+					else if ( Core.AOS && (flags & ClientFlags.Malas) != 0 )
 						checkLists = young ? PMList.AOSListsYoung : PMList.AOSLists;
-					else if ( (flags & 0x4) != 0 )
+					else if ( (flags & ClientFlags.Ilshenar) != 0 )
 						checkLists = young ? PMList.LBRListsYoung : PMList.LBRLists;
 					else
 						checkLists = young ? PMList.UORListsYoung : PMList.UORLists;

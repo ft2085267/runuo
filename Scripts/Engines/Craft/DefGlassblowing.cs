@@ -31,6 +31,9 @@ namespace Server.Engines.Craft
 
 		public override double GetChanceAtMin( CraftItem item )
 		{
+			if( item.ItemType == typeof( HollowPrism ) )
+				return 0.5; // 50%
+
 			return 0.0; // 0%
 		}
 
@@ -128,6 +131,12 @@ namespace Server.Engines.Craft
 			AddCraft( typeof( EmptyVialsWRack ), 1044050, 1044616, 65.0, 115.0, typeof( Sand ), 1044625, 8, 1044627 );
 			AddCraft( typeof( FullVialsWRack ), 1044050, 1044617, 65.0, 115.0, typeof( Sand ), 1044625, 9, 1044627 );
 			AddCraft( typeof( SpinningHourglass ), 1044050, 1044618, 75.0, 125.0, typeof( Sand ), 1044625, 10, 1044627 );
+
+			if ( Core.ML )
+			{
+				index = AddCraft( typeof( HollowPrism ), 1044050, 1072895, 100.0, 150.0, typeof( Sand ), 1044625, 8, 1044627 );
+				SetNeededExpansion( index, Expansion.ML );
+			}
 		}
 	}
 }

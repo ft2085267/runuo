@@ -11,6 +11,20 @@ namespace Server.Engines.CannedEvil
 {
 	public class ChampionSpawn : Item
 	{
+		[CommandProperty( AccessLevel.GameMaster )]
+		public int SpawnSzMod
+		{
+			get
+			{
+				return ( m_SPawnSzMod < 1 || m_SPawnSzMod > 12 ) ? 12 : m_SPawnSzMod;
+			}
+			set
+			{
+				m_SPawnSzMod = ( value < 1 || value > 12 ) ? 12 : value;
+			}
+		}
+		private int m_SPawnSzMod;
+
 		private bool m_Active;
 		private bool m_RandomizeType;
 		private ChampionSpawnType m_Type;
@@ -70,7 +84,7 @@ namespace Server.Engines.CannedEvil
 			m_Idol = new IdolOfTheChampion( this );
 
 			m_ExpireDelay = TimeSpan.FromMinutes( 10.0 );
-			m_RestartDelay = TimeSpan.FromMinutes( 5.0 );
+			m_RestartDelay = TimeSpan.FromMinutes( 10.0 );
 
 			m_DamageEntries = new Dictionary<Mobile, int>();
 
@@ -273,8 +287,13 @@ namespace Server.Engines.CannedEvil
 		{
 			get
 			{
-				return 250 - (Level * 12);
+				return ( m_SPawnSzMod * ( 250 / 12 ) ) - ( Level * m_SPawnSzMod );
 			}
+		}
+
+		public bool IsChampionSpawn( Mobile m )
+		{
+			return m_Creatures.Contains( m );
 		}
 
 		public void SetWhiteSkullCount( int val )
@@ -362,7 +381,7 @@ namespace Server.Engines.CannedEvil
 			if( m_RestartTimer != null )
 				m_RestartTimer.Stop();
 
-			m_RestartTime = DateTime.Now + ts;
+			m_RestartTime = DateTime.UtcNow + ts;
 
 			m_RestartTimer = new RestartTimer( this, ts );
 			m_RestartTimer.Start();
@@ -381,10 +400,80 @@ namespace Server.Engines.CannedEvil
 					case 4: Type = ChampionSpawnType.Arachnid; break;
 				}
 			}
-			
+
 			m_HasBeenAdvanced = false;
 
 			Start();
+		}
+
+		#region Scroll of Transcendence
+		private ScrollofTranscendence CreateRandomSoT( bool felucca )
+		{
+			int level = Utility.RandomMinMax( 1, 5 );
+			
+			if ( felucca )
+				level += 5;
+
+			return ScrollofTranscendence.CreateRandom(level, level);
+		}
+		#endregion
+
+		public static void GiveScrollTo( Mobile killer, SpecialScroll scroll )
+		{
+			if( scroll == null || killer == null )	//sanity
+				return;
+
+			if ( scroll is ScrollofTranscendence )
+				killer.SendLocalizedMessage( 1094936 ); // You have received a Scroll of Transcendence!
+			else
+				killer.SendLocalizedMessage( 1049524 ); // You have received a scroll of power!
+			
+			if ( killer.Alive )
+				killer.AddToBackpack( scroll );
+			else
+			{
+				if( killer.Corpse != null && !killer.Corpse.Deleted )
+					killer.Corpse.DropItem( scroll );
+				else
+					killer.AddToBackpack( scroll );
+			}
+			
+			// Justice reward
+			PlayerMobile pm = (PlayerMobile)killer;
+			for (int j = 0; j < pm.JusticeProtectors.Count; ++j)
+			{
+				Mobile prot = (Mobile)pm.JusticeProtectors[j];
+				
+				if ( prot.Map != killer.Map || prot.Kills >= 5 || prot.Criminal || !JusticeVirtue.CheckMapRegion( killer, prot ) )
+					continue;
+
+				int chance = 0;
+
+				switch ( VirtueHelper.GetLevel( prot, VirtueName.Justice ) )
+				{
+					case VirtueLevel.Seeker: chance = 60; break;
+					case VirtueLevel.Follower: chance = 80; break;
+					case VirtueLevel.Knight: chance = 100; break;
+				}
+
+				if ( chance > Utility.Random( 100 ) )
+				{
+					try
+					{
+						prot.SendLocalizedMessage( 1049368 ); // You have been rewarded for your dedication to Justice!
+
+						SpecialScroll scrollDupe = Activator.CreateInstance( scroll.GetType() ) as SpecialScroll;
+					
+						if ( scrollDupe != null )
+						{
+							scrollDupe.Skill = scroll.Skill;
+							scrollDupe.Value = scroll.Value;
+							prot.AddToBackpack( scrollDupe );
+						}
+					}
+					catch{}
+				}
+			}
 		}
 
 		public void OnSlice()
@@ -432,6 +521,10 @@ namespace Server.Engines.CannedEvil
 
 					if ( m.Deleted )
 					{
+						if( m.Corpse != null && !m.Corpse.Deleted )
+						{
+							((Corpse)m.Corpse).BeginDecay( TimeSpan.FromMinutes( 1 ));
+						}
 						m_Creatures.RemoveAt( i );
 						--i;
 						++m_Kills;
@@ -445,6 +538,41 @@ namespace Server.Engines.CannedEvil
 
 						if( killer is PlayerMobile )
 						{
+							#region Scroll of Transcendence
+							if ( Core.ML )
+							{
+								if ( Map == Map.Felucca )
+								{
+									if ( Utility.RandomDouble() < 0.001 )
+									{
+										PlayerMobile pm = (PlayerMobile)killer;
+										double random = Utility.Random ( 49 );
+										
+										if ( random <= 24 )
+										{
+											ScrollofTranscendence SoTF = CreateRandomSoT( true );
+											GiveScrollTo( pm, (SpecialScroll)SoTF );
+										}
+										else
+										{
+											PowerScroll PS = PowerScroll.CreateRandomNoCraft(5, 5);
+											GiveScrollTo( pm, (SpecialScroll)PS );
+										}
+									}
+								}
+
+								if ( Map == Map.Ilshenar || Map == Map.Tokuno || Map == Map.Malas )
+								{
+									if ( Utility.RandomDouble() < 0.0015 )
+									{
+										killer.SendLocalizedMessage( 1094936 ); // You have received a Scroll of Transcendence!
+										ScrollofTranscendence SoTT = CreateRandomSoT( false );
+										killer.AddToBackpack( SoTT );
+									}
+								}
+							}
+							#endregion
+
 							int mobSubLevel = GetSubLevelFor( m ) + 1;
 
 							if( mobSubLevel >= 0 )
@@ -483,7 +611,7 @@ namespace Server.Engines.CannedEvil
 				else if( p > 0 )
 					SetWhiteSkullCount( p / 20 );
 
-				if( DateTime.Now >= m_ExpireTime )
+				if( DateTime.UtcNow >= m_ExpireTime )
 					Expire();
 
 				Respawn();
@@ -492,7 +620,7 @@ namespace Server.Engines.CannedEvil
 
 		public void AdvanceLevel()
 		{
-			m_ExpireTime = DateTime.Now + m_ExpireDelay;
+			m_ExpireTime = DateTime.UtcNow + m_ExpireDelay;
 
 			if( Level < 16 )
 			{
@@ -541,7 +669,7 @@ namespace Server.Engines.CannedEvil
 			if( !m_Active || Deleted || m_Champion != null )
 				return;
 
-			while( m_Creatures.Count < (200 - (GetSubLevel() * 40)) )
+			while( m_Creatures.Count < ( ( m_SPawnSzMod * ( 200 / 12 ) ) ) - ( GetSubLevel() * ( m_SPawnSzMod * ( 40 / 12 ) ) ) )
 			{
 				Mobile m = Spawn();
 
@@ -606,6 +734,10 @@ namespace Server.Engines.CannedEvil
 
 				if( Map.CanSpawnMobile( new Point2D( x, y ), z ) )
 					return new Point3D( x, y, z );
+
+				/* try @ platform Z if map z fails */
+				else if( Map.CanSpawnMobile( new Point2D( x, y ), m_Platform.Location.Z ) )
+					return new Point3D( x, y, m_Platform.Location.Z );
 			}
 
 			return Location;
@@ -690,7 +822,7 @@ namespace Server.Engines.CannedEvil
 				SetWhiteSkullCount( 0 );
 			}
 
-			m_ExpireTime = DateTime.Now + m_ExpireDelay;
+			m_ExpireTime = DateTime.UtcNow + m_ExpireDelay;
 		}
 
 		public Point3D GetRedSkullLocation( int index )
@@ -946,12 +1078,14 @@ namespace Server.Engines.CannedEvil
 			{
 				totalDamage += kvp.Value;
 
-				if( totalDamage > randomDamage )
+				if( totalDamage >= randomDamage )
 				{
 					GiveArtifact( kvp.Key, artifact );
-					break;
+					return;
 				}
 			}
+
+			artifact.Delete();
 		}
 
 		public void GiveArtifact( Mobile to, Item artifact )
@@ -976,8 +1110,9 @@ namespace Server.Engines.CannedEvil
 		{
 			base.Serialize( writer );
 
-			writer.Write( (int)5 ); // version
+			writer.Write( (int)6 ); // version
 
+			writer.Write( ( int ) m_SPawnSzMod );
 			writer.Write( m_DamageEntries.Count );
 			foreach (KeyValuePair<Mobile, int> kvp in m_DamageEntries)
 			{
@@ -1023,6 +1158,11 @@ namespace Server.Engines.CannedEvil
 
 			switch( version )
 			{
+				case 6:
+				{
+					m_SPawnSzMod = reader.ReadInt();
+					goto case 5;
+				}
 				case 5:
 				{
 					int entries = reader.ReadInt();
@@ -1094,7 +1234,7 @@ namespace Server.Engines.CannedEvil
 					if( reader.ReadBool() )
 					{
 						m_RestartTime = reader.ReadDeltaTime();
-						BeginRestart( m_RestartTime - DateTime.Now );
+						BeginRestart( m_RestartTime - DateTime.UtcNow );
 					}
 
 					if( version < 4 )
@@ -1118,6 +1258,8 @@ namespace Server.Engines.CannedEvil
 
 	public class ChampionSpawnRegion : BaseRegion
 	{
+		public override bool YoungProtected { get { return false; } }
+
 		private ChampionSpawn m_Spawn;
 
 		public ChampionSpawn ChampionSpawn

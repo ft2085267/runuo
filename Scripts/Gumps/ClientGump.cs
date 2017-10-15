@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using Server;
 using Server.Accounting;
+using Server.Mobiles;
 using Server.Network;
 using Server.Targets;
 using Server.Commands;
@@ -38,7 +39,7 @@ namespace Server.Gumps
 				from.SendMessage( "That character no longer exists." );
 				return;
 			}
-			else if ( from != focus && focus.Hidden && from.AccessLevel < focus.AccessLevel )
+			else if ( from != focus && focus.Hidden && from.AccessLevel < focus.AccessLevel && ( !( focus is PlayerMobile ) || !((PlayerMobile)focus).VisibilityList.Contains( from ) ) )
 			{
 				from.SendMessage( "That character is no longer visible." );
 				return;
@@ -218,9 +219,6 @@ namespace Server.Gumps
 
 			ExpansionInfo info = state.ExpansionInfo;
 			string expansionName = info.Name;
-
-			if ( info.ID == (int)Expansion.None )
-				expansionName = (((state.Flags & 0x04) != 0) ? "Blackthorn's Revenge" : ((state.Flags & 0x02) != 0) ? "Third Dawn" : ((state.Flags & 0x01) != 0) ? "Renaissance" : "The Second Age" );
 
 			AddHtml( 70, 36 + (line++ * 20), 200, 20, Color( expansionName, LabelColor32 ), false, false );
 

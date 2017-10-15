@@ -11,7 +11,7 @@ namespace Server.Mobiles
 	public class MeerMage : BaseCreature
 	{
 		[Constructable]
-		public MeerMage() : base( AIType.AI_Mage, FightMode.Aggressor, 10, 1, 0.2, 0.4 )
+		public MeerMage() : base( AIType.AI_Mage, FightMode.Evil, 10, 1, 0.2, 0.4 )
 		{
 			Name = "a meer mage";
 			Body = 770;
@@ -44,7 +44,7 @@ namespace Server.Mobiles
 
 			VirtualArmor = 16;
 
-			m_NextAbilityTime = DateTime.Now + TimeSpan.FromSeconds( Utility.RandomMinMax( 2, 5 ) );
+			m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds( Utility.RandomMinMax( 2, 5 ) );
 		}
 
 		public override void GenerateLoot()
@@ -80,19 +80,65 @@ namespace Server.Mobiles
 
 		public override void OnThink()
 		{
-			if ( DateTime.Now >= m_NextAbilityTime )
+			if ( DateTime.UtcNow >= m_NextAbilityTime )
 			{
 				Mobile combatant = this.Combatant;
 
 				if ( combatant != null && combatant.Map == this.Map && combatant.InRange( this, 12 ) && IsEnemy( combatant ) && !UnderEffect( combatant ) )
 				{
-					m_NextAbilityTime = DateTime.Now + TimeSpan.FromSeconds( Utility.RandomMinMax( 20, 30 ) );
+					m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds( Utility.RandomMinMax( 20, 30 ) );
 
-					// TODO: Forest summon ability
+					if( combatant is BaseCreature )
+					{
+						BaseCreature bc = (BaseCreature)combatant;
 
-					this.Say( true, "I call a plague of insects to sting your flesh!" );
+						if( bc.Controlled && bc.ControlMaster != null && !bc.ControlMaster.Deleted && bc.ControlMaster.Alive )
+						{
+							if ( bc.ControlMaster.Map == this.Map && bc.ControlMaster.InRange( this, 12 ) && !UnderEffect( bc.ControlMaster ) )
+							{
+								Combatant = combatant = bc.ControlMaster;
+							}
+						}
+					}
 
-					m_Table[combatant] = Timer.DelayCall( TimeSpan.FromSeconds( 0.5 ), TimeSpan.FromSeconds( 7.0 ), new TimerStateCallback( DoEffect ), new object[]{ combatant, 0 } );
+					if( Utility.RandomDouble() < .1 )
+					{
+						int[][] coord = 
+						{
+							new int[]{-4,-6}, new int[]{4,-6}, new int[]{0,-8}, new int[]{-5,5}, new int[]{5,5}
+						};
+
+						BaseCreature rabid;
+
+						for( int i=0; i<5; i++ )
+						{
+							int x = combatant.X + coord[i][0];
+							int y = combatant.Y + coord[i][1];
+
+							Point3D loc = new Point3D( x, y, combatant.Map.GetAverageZ( x, y ) );
+
+							if ( !combatant.Map.CanSpawnMobile( loc ) )
+								continue;
+
+							switch ( i )
+							{
+								case 0: rabid = new EnragedRabbit( this ); break;
+								case 1: rabid = new EnragedHind( this ); break;
+								case 2: rabid = new EnragedHart( this ); break;
+								case 3: rabid = new EnragedBlackBear( this ); break;
+								default: rabid = new EnragedEagle( this ); break;
+							}
+
+							rabid.FocusMob = combatant;
+							rabid.MoveToWorld( loc, combatant.Map );
+						}
+						this.Say( 1071932 ); //Creatures of the forest, I call to thee!  Aid me in the fight against all that is evil!
+					}
+					else if ( combatant.Player )
+					{
+						this.Say( true, "I call a plague of insects to sting your flesh!" );
+						m_Table[combatant] = Timer.DelayCall( TimeSpan.FromSeconds( 0.5 ), TimeSpan.FromSeconds( 7.0 ), new TimerStateCallback( DoEffect ), new object[]{ combatant, 0 } );
+					}
 				}
 			}
 

@@ -9,6 +9,7 @@ using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
 using Server.Network;
+using Server.Spells;
 using Server.Targeting;
 
 namespace Server.Multis
@@ -209,7 +210,7 @@ namespace Server.Multis
 			for( int i = 0; i < list.Length; ++i )
 			{
 				MultiTileEntry mte = list[i];
-				int itemID = mte.m_ItemID & 0x3FFF;
+				int itemID = mte.m_ItemID;
 
 				if( itemID >= 0x181D && itemID < 0x1829 )
 				{
@@ -305,7 +306,7 @@ namespace Server.Multis
 					{
 						int mod = (itemID - 0x2D63)/2%2;
 						DoorFacing facing = ( ( mod == 0 ) ? DoorFacing.SouthCCW : DoorFacing.WestCCW );
-						
+
 						int type = (itemID - 0x2D63) / 4;
 
 						door = new GenericHouseDoor( facing, 0x2D63 + 4*type + mod*2, 0xEA, 0xF1, false );
@@ -343,6 +344,52 @@ namespace Server.Multis
 							case 0: door = new GenericHouseDoor( facing, 0x367B, 0xED, 0xF4 ); break;	//crystal
 							case 1: door = new GenericHouseDoor( facing, 0x368B, 0xEC, 0x3E7 ); break;	//shadow
 						}
+					}
+					else if( itemID >= 0x409B && itemID < 0x40A3 )
+					{
+						door = new GenericHouseDoor( GetSADoorFacing( itemID - 0x409B ), itemID, 0xEA, 0xF1, false );
+					}
+					else if( itemID >= 0x410C && itemID < 0x4114 )
+					{
+						door = new GenericHouseDoor( GetSADoorFacing( itemID - 0x410C ), itemID, 0xEA, 0xF1, false );
+					}
+					else if( itemID >= 0x41C2 && itemID < 0x41CA )
+					{
+						door = new GenericHouseDoor( GetSADoorFacing( itemID - 0x41C2 ), itemID, 0xEA, 0xF1, false );
+					}
+					else if( itemID >= 0x41CF && itemID < 0x41D7 )
+					{
+						door = new GenericHouseDoor( GetSADoorFacing( itemID - 0x41CF ), itemID, 0xEA, 0xF1, false );
+					}
+					else if( itemID >= 0x436E && itemID < 0x437E )
+					{
+						/* These ones had to be different...
+						 * Offset		0	2	4	6	8	10	12	14
+						 * DoorFacing	2	3	2	3	6	7	6	7
+						 */
+						int offset = itemID - 0x436E;
+						DoorFacing facing = (DoorFacing)( ( offset / 2 + 2 * ( ( 1 + offset / 4 ) % 2 ) ) % 8 );
+						door = new GenericHouseDoor( facing, itemID, 0xEA, 0xF1, false );
+					}
+					else if( itemID >= 0x46DD && itemID < 0x46E5 )
+					{
+						door = new GenericHouseDoor( GetSADoorFacing( itemID - 0x46DD ), itemID, 0xEB, 0xF2, false );
+					}
+					else if( itemID >= 0x4D22 && itemID < 0x4D2A )
+					{
+						door = new GenericHouseDoor( GetSADoorFacing( itemID - 0x4D22 ), itemID, 0xEA, 0xF1, false );
+					}
+					else if( itemID >= 0x50C8 && itemID < 0x50D0 )
+					{
+						door = new GenericHouseDoor( GetSADoorFacing( itemID - 0x50C8 ), itemID, 0xEA, 0xF1, false );
+					}
+					else if( itemID >= 0x50D0 && itemID < 0x50D8 )
+					{
+						door = new GenericHouseDoor( GetSADoorFacing( itemID - 0x50D0 ), itemID, 0xEA, 0xF1, false );
+					}
+					else if( itemID >= 0x5142 && itemID < 0x514A )
+					{
+						door = new GenericHouseDoor( GetSADoorFacing( itemID - 0x5142 ), itemID, 0xF0, 0xEF, false );
 					}
 
 					if( door != null )
@@ -418,6 +465,14 @@ namespace Server.Multis
 					}
 				}
 			}
+		}
+
+		private static DoorFacing GetSADoorFacing( int offset )
+		{
+			/* Offset		0	2	4	6
+			 * DoorFacing	2	3	6	7
+			 */
+			return (DoorFacing)( ( offset / 2 + 2 * ( 1 + offset / 4 ) ) % 8 );
 		}
 
 		public void AddFixture( Item item, MultiTileEntry mte )
@@ -553,11 +608,11 @@ namespace Server.Multis
 
 			if( x >= 0 && x < mcl.Width && y >= 0 && y < mcl.Height )
 			{
-				Tile[] tiles = mcl.Tiles[x][y];
+				StaticTile[] tiles = mcl.Tiles[x][y];
 
 				for( int i = 0; i < tiles.Length; ++i )
 				{
-					Tile tile = tiles[i];
+					StaticTile tile = tiles[i];
 
 					if( tile.Z == 7 && tile.Height == 20 )
 						return true;
@@ -592,8 +647,12 @@ namespace Server.Multis
 
 		public void BeginCustomize( Mobile m )
 		{
-			if( !m.CheckAlive() )
+			if( !m.CheckAlive() ) {
 				return;
+			} else if ( SpellHelper.CheckCombat( m ) ) {
+				m.SendLocalizedMessage( 1005564, "", 0x22 ); // Wouldst thou flee during the heat of battle??
+				return;
+			}
 
 			RelocateEntities();
 
@@ -611,10 +670,11 @@ namespace Server.Multis
 			DesignContext.Add( m, this );
 			m.Send( new BeginHouseCustomization( this ) );
 
-			if( m.NetState != null )
-				SendInfoTo( m.NetState );
+			NetState ns = m.NetState;
+			if( ns != null )
+				SendInfoTo( ns );
 
-			DesignState.SendDetailedInfoTo( m.NetState );
+			DesignState.SendDetailedInfoTo( ns );
 		}
 
 		public override void SendInfoTo( NetState state, bool sendOplPacket )
@@ -714,7 +774,7 @@ namespace Server.Multis
 
 		public bool IsHiddenToCustomizer( Item item )
 		{
-			return (item == m_Signpost || (m_Fixtures != null && m_Fixtures.Contains( item )));
+			return ( item == m_Signpost || item == m_SignHanger || item == Sign || IsFixture( item ) );
 		}
 
 		public static void Initialize()
@@ -736,8 +796,6 @@ namespace Server.Multis
 			PacketHandlers.RegisterEncoded( 0x14, true, new OnEncodedPacketReceive( Designer_RoofDelete ) ); // Samurai Empire roof
 
 			PacketHandlers.RegisterEncoded( 0x1A, true, new OnEncodedPacketReceive( Designer_Revert ) );
-
-			CommandSystem.Register( "DesignInsert", AccessLevel.GameMaster, new CommandEventHandler( DesignInsert_OnCommand ) );
 
 			EventSink.Speech += new SpeechEventHandler( EventSink_Speech );
 		}
@@ -890,7 +948,7 @@ namespace Server.Multis
 		public void EndConfirmCommit( Mobile from )
 		{
 			int oldPrice = Price;
-			int newPrice = oldPrice + CustomizationCost + ((DesignState.Components.List.Length - CurrentState.Components.List.Length) * 500);
+			int newPrice = oldPrice + CustomizationCost + ((DesignState.Components.List.Length - ( CurrentState.Components.List.Length + CurrentState.Fixtures.Length )) * 500);
 			int cost = newPrice - oldPrice;
 
 			if ( !this.Deleted ) { // Temporary Fix. We should be booting a client out of customization mode in the delete handler.
@@ -991,18 +1049,11 @@ namespace Server.Multis
 			if( context != null )
 			{
 				int oldPrice = context.Foundation.Price;
-				int newPrice = oldPrice + context.Foundation.CustomizationCost + ((context.Foundation.DesignState.Components.List.Length - context.Foundation.CurrentState.Components.List.Length) * 500);
+				int newPrice = oldPrice + context.Foundation.CustomizationCost + ((context.Foundation.DesignState.Components.List.Length - ( context.Foundation.CurrentState.Components.List.Length + context.Foundation.Fixtures.Count) ) * 500);
 				int bankBalance = Banker.GetBalance( from );
 
 				from.SendGump( new ConfirmCommitGump( from, context.Foundation, bankBalance, oldPrice, newPrice ) );
 			}
-		}
-
-		public static bool IsSignHanger( int itemID )
-		{
-			itemID &= 0x3FFF;
-
-			return (itemID >= 0xB97 && itemID < 0xBA3);
 		}
 
 		public int MaxLevels
@@ -1067,52 +1118,69 @@ namespace Server.Multis
 
 		public static bool ValidPiece( int itemID, bool roof )
 		{
-			itemID &= 0x3FFF;
+			itemID &= TileData.MaxItemValue;
 
-			if ( !roof && ( TileData.ItemTable[itemID & 0x3FFF].Flags & TileFlag.Roof ) != 0 )
+			if ( !roof && ( TileData.ItemTable[itemID].Flags & TileFlag.Roof ) != 0 )
 				return false;
-			else if ( roof && ( TileData.ItemTable[itemID & 0x3FFF].Flags & TileFlag.Roof ) == 0 )
+			else if ( roof && ( TileData.ItemTable[itemID].Flags & TileFlag.Roof ) == 0 )
 				return false;
 
 			return Verification.IsItemValid( itemID );
 		}
 
+		public static readonly bool AllowStairSectioning = true;
+
+		/* Stair block IDs
+		 * (sorted ascending)
+		 */
 		private static int[] m_BlockIDs = new int[]
 			{
 				0x3EE, 0x709, 0x71E, 0x721,
 				0x738, 0x750, 0x76C, 0x788,
-				0x7A3, 0x7BA, 0x35D2, 0x3609
+				0x7A3, 0x7BA, 0x35D2, 0x3609,
+				0x4317, 0x4318, 0x4B07, 0x7807
 			};
 
+		/* Stair sequence IDs
+		 * (sorted ascending)
+		 * Use this for stairs in the proper N,W,S,E sequence
+		 */
 		private static int[] m_StairSeqs = new int[]
 			{
 				0x3EF, 0x70A, 0x722, 0x739,
 				0x751, 0x76D, 0x789, 0x7A4
 			};
 
+		/* Other stair IDs
+		 * Listed in order: north, west, south, east
+		 * Use this for stairs not in the proper sequence
+		 */
 		private static int[] m_StairIDs = new int[]
 			{
 				0x71F, 0x736, 0x737, 0x749,
+				0x35D4, 0x35D3, 0x35D6, 0x35D5,
+				0x360B, 0x360A, 0x360D, 0x360C,
+				0x4360, 0x435E, 0x435F, 0x4361,
+				0x435C, 0x435A, 0x435B, 0x435D,
+				0x4364, 0x4362, 0x4363, 0x4365,
+				0x4B05, 0x4B04, 0x4B34, 0x4B33,
+				0x7809, 0x7808, 0x780A, 0x780B,
 				0x7BB, 0x7BC
 			};
 
 		public static bool IsStairBlock( int id )
 		{
-			id &= 0x3FFF;
 			int delta = -1;
 
 			for( int i = 0; delta < 0 && i < m_BlockIDs.Length; ++i )
 				delta = (m_BlockIDs[i] - id);
 
 			return (delta == 0);
-
-			//if ID matches one of the the items in m_BlockIDs, return true
 		}
 
 		public static bool IsStair( int id, ref int dir )
 		{
 			//dir n=0 w=1 s=2 e=3
-			id &= 0x3FFF;
 			int delta = -4;
 
 			for( int i = 0; delta < -3 && i < m_StairSeqs.Length; ++i )
@@ -1124,15 +1192,16 @@ namespace Server.Multis
 				return true;
 			}
 
-			delta = -1;
-
-			for( int i = 0; delta < 0 && i < m_StairIDs.Length; ++i )
+			for( int i = 0; i < m_StairIDs.Length; ++i )
 			{
-				delta = (m_StairIDs[i] - id);
-				dir = i % 4;
+				if( m_StairIDs[i] == id )
+				{
+					dir = i % 4;
+					return true;
+				}
 			}
 
-			return (delta == 0);
+			return false;
 		}
 
 		public static bool DeleteStairs( MultiComponentList mcl, int id, int x, int y, int z )
@@ -1145,11 +1214,11 @@ namespace Server.Multis
 
 			if( IsStairBlock( id ) )
 			{
-				Tile[] tiles = mcl.Tiles[ax][ay];
+				StaticTile[] tiles = mcl.Tiles[ax][ay];
 
 				for( int i = 0; i < tiles.Length; ++i )
 				{
-					Tile tile = tiles[i];
+					StaticTile tile = tiles[i];
 
 					if( tile.Z == (z + 5) )
 					{
@@ -1166,6 +1235,9 @@ namespace Server.Multis
 
 			if( !IsStair( id, ref dir ) )
 				return false;
+
+			if ( AllowStairSectioning )
+				return true; // skip deletion
 
 			int height = ((z - 7) % 20) / 5;
 
@@ -1224,12 +1296,12 @@ namespace Server.Multis
 
 				if( ax >= 1 && ax < mcl.Width && ay >= 1 && ay < mcl.Height - 1 )
 				{
-					Tile[] tiles = mcl.Tiles[ax][ay];
+					StaticTile[] tiles = mcl.Tiles[ax][ay];
 
 					bool hasBaseFloor = false;
 
 					for( int j = 0; !hasBaseFloor && j < tiles.Length; ++j )
-						hasBaseFloor = (tiles[j].Z == 7 && (tiles[j].ID & 0x3FFF) != 1);
+						hasBaseFloor = (tiles[j].Z == 7 && tiles[j].ID != 1);
 
 					if( !hasBaseFloor )
 						mcl.Add( 0x31F4, x, y, 7 );
@@ -1267,7 +1339,7 @@ namespace Server.Multis
 				int ax = x + mcl.Center.X;
 				int ay = y + mcl.Center.Y;
 
-				if( IsSignHanger( itemID ) || (z == 0 && ax >= 0 && ax < mcl.Width && ay >= 0 && ay < (mcl.Height - 1)) )
+				if( z == 0 && ax >= 0 && ax < mcl.Width && ay >= 0 && ay < (mcl.Height - 1) )
 				{
 					/* Component is not deletable
 					 *  - Resend design state
@@ -1278,19 +1350,31 @@ namespace Server.Multis
 					return;
 				}
 
+				bool fixState = false;
+
 				// Remove the component
-				if( !DeleteStairs( mcl, itemID, x, y, z ) )
+				if( AllowStairSectioning )
+				{
+					if( DeleteStairs( mcl, itemID, x, y, z ) )
+						fixState = true; // The client removes the entire set of stairs locally, resend state
+
 					mcl.Remove( itemID, x, y, z );
+				}
+				else
+				{
+					if( !DeleteStairs( mcl, itemID, x, y, z ) )
+						mcl.Remove( itemID, x, y, z );
+				}
 
 				// If needed, replace removed component with a dirt tile
 				if( ax >= 1 && ax < mcl.Width && ay >= 1 && ay < mcl.Height - 1 )
 				{
-					Tile[] tiles = mcl.Tiles[ax][ay];
+					StaticTile[] tiles = mcl.Tiles[ax][ay];
 
 					bool hasBaseFloor = false;
 
 					for( int i = 0; !hasBaseFloor && i < tiles.Length; ++i )
-						hasBaseFloor = (tiles[i].Z == 7 && (tiles[i].ID & 0x3FFF) != 1);
+						hasBaseFloor = (tiles[i].Z == 7 && tiles[i].ID != 1);
 
 					if( !hasBaseFloor )
 					{
@@ -1301,6 +1385,10 @@ namespace Server.Multis
 
 				// Update revision
 				design.OnRevised();
+
+				// Resend design state
+				if( fixState )
+					design.SendDetailedInfoTo( state );
 			}
 		}
 
@@ -1353,107 +1441,12 @@ namespace Server.Multis
 				{
 					MultiTileEntry entry = stairs.List[i];
 
-					if( (entry.m_ItemID & 0x3FFF) != 1 )
+					if( entry.m_ItemID != 1 )
 						mcl.Add( entry.m_ItemID, x + entry.m_OffsetX, y + entry.m_OffsetY, z + entry.m_OffsetZ );
 				}
 
 				// Update revision
 				design.OnRevised();
-			}
-		}
-
-		[Usage( "DesignInsert" )]
-		[Description( "Inserts multiple targeted items into a customizable houses design." )]
-		public static void DesignInsert_OnCommand( CommandEventArgs e )
-		{
-			e.Mobile.Target = new DesignInsertTarget( null );
-			e.Mobile.SendMessage( "Target an item to insert it into the house design." );
-		}
-
-		private class DesignInsertTarget : Target
-		{
-			private HouseFoundation m_Foundation;
-
-			public DesignInsertTarget( HouseFoundation foundation )
-				: base( -1, false, TargetFlags.None )
-			{
-				m_Foundation = foundation;
-			}
-
-			protected override void OnTargetCancel( Mobile from, TargetCancelType cancelType )
-			{
-				if( m_Foundation != null )
-				{
-					from.SendMessage( "Your changes have been committed. Updating..." );
-
-					m_Foundation.Delta( ItemDelta.Update );
-				}
-			}
-
-			protected override void OnTarget( Mobile from, object obj )
-			{
-				Item item = obj as Item;
-
-				if( item == null )
-				{
-					from.Target = new DesignInsertTarget( m_Foundation );
-					from.SendMessage( "That is not an item. Try again." );
-				}
-				else
-				{
-					HouseFoundation house = BaseHouse.FindHouseAt( item ) as HouseFoundation;
-
-					if( house == null )
-					{
-						from.Target = new DesignInsertTarget( m_Foundation );
-						from.SendMessage( "That item is not inside a customizable house. Try again." );
-					}
-					else if( m_Foundation != null && house != m_Foundation )
-					{
-						from.Target = new DesignInsertTarget( m_Foundation );
-						from.SendMessage( "That item is not inside the current house; all targeted items must reside in the same house. You may cancel this target and repeat the command." );
-					}
-					else
-					{
-						DesignState state = house.CurrentState;
-						MultiComponentList mcl = state.Components;
-
-						int x = item.X - house.X;
-						int y = item.Y - house.Y;
-						int z = item.Z - house.Z;
-
-						if( x >= mcl.Min.X && y >= mcl.Min.Y && x <= mcl.Max.X && y <= mcl.Max.Y )
-						{
-							mcl.Add( item.ItemID, x, y, z );
-							item.Delete();
-
-							state.OnRevised();
-
-							state = house.DesignState;
-							mcl = state.Components;
-
-							if( x >= mcl.Min.X && y >= mcl.Min.Y && x <= mcl.Max.X && y <= mcl.Max.Y )
-							{
-								mcl.Add( item.ItemID, x, y, z );
-								state.OnRevised();
-							}
-
-							from.Target = new DesignInsertTarget( house );
-
-							if( m_Foundation == null )
-								from.SendMessage( "The item has been inserted into the house design. Press ESC when you are finished." );
-							else
-								from.SendMessage( "The item has been inserted into the house design." );
-
-							m_Foundation = house;
-						}
-						else
-						{
-							from.Target = new DesignInsertTarget( m_Foundation );
-							from.SendMessage( "That item is not inside a customizable house. Try again." );
-						}
-					}
-				}
 			}
 		}
 
@@ -1521,7 +1514,7 @@ namespace Server.Multis
 				/* Client closed his house design window
 				 *  - Remove design context
 				 *  - Notify the client that customization has ended
-				 *  - Refresh client with current visable design state
+				 *  - Refresh client with current visible design state
 				 *  - If a signpost is needed, add it
 				 *  - Eject all from house
 				 *  - Restore relocated entities
@@ -1567,7 +1560,7 @@ namespace Server.Multis
 				 *  - Update design context with new level
 				 *  - Teleport mobile to new level
 				 *  - Update client
-				 * 
+				 *
 				 */
 
 				// Read data detailing the target level
@@ -1642,7 +1635,7 @@ namespace Server.Multis
 				{
 					MultiTileEntry mte = list[i];
 
-					if( mte.m_OffsetX == x && mte.m_OffsetY == y && GetZLevel( mte.m_OffsetZ, context.Foundation ) == context.Level  && (TileData.ItemTable[mte.m_ItemID & 0x3FFF].Flags & TileFlag.Roof) != 0 )
+					if( mte.m_OffsetX == x && mte.m_OffsetY == y && GetZLevel( mte.m_OffsetZ, context.Foundation ) == context.Level  && (TileData.ItemTable[mte.m_ItemID & TileData.MaxItemValue].Flags & TileFlag.Roof) != 0 )
 						mcl.Remove( mte.m_ItemID, x, y, mte.m_OffsetZ );
 				}
 
@@ -1658,7 +1651,7 @@ namespace Server.Multis
 			Mobile from = state.Mobile;
 			DesignContext context = DesignContext.Find( from );
 
-			if( context != null )	//No need to check if core.SE if trying to remvoe something that shouldn't be able to be placed anyways
+			if( context != null )	// No need to check for Core.SE if trying to remove something that shouldn't be able to be placed anyways
 			{
 				// Read data detailing which component to delete
 				int itemID = pvSrc.ReadInt32();
@@ -1670,7 +1663,7 @@ namespace Server.Multis
 				DesignState design = context.Foundation.DesignState;
 				MultiComponentList mcl = design.Components;
 
-				if( (TileData.ItemTable[itemID & 0x3FFF].Flags & TileFlag.Roof) == 0 )
+				if( (TileData.ItemTable[itemID & TileData.MaxItemValue].Flags & TileFlag.Roof) == 0 )
 				{
 					design.SendDetailedInfoTo( state );
 					return;
@@ -1749,7 +1742,7 @@ namespace Server.Multis
 
 					for( int i = 0; i < length; ++i )
 					{
-						m_Fixtures[i].m_ItemID = reader.ReadShort();
+						m_Fixtures[i].m_ItemID = reader.ReadUShort();
 						m_Fixtures[i].m_OffsetX = reader.ReadShort();
 						m_Fixtures[i].m_OffsetY = reader.ReadShort();
 						m_Fixtures[i].m_OffsetZ = reader.ReadShort();
@@ -1775,7 +1768,7 @@ namespace Server.Multis
 			{
 				MultiTileEntry ent = m_Fixtures[i];
 
-				writer.Write( (short)ent.m_ItemID );
+				writer.Write( (ushort)ent.m_ItemID );
 				writer.Write( (short)ent.m_OffsetX );
 				writer.Write( (short)ent.m_OffsetY );
 				writer.Write( (short)ent.m_OffsetZ );
@@ -1863,8 +1856,6 @@ namespace Server.Multis
 
 		public static bool IsFixture( int itemID )
 		{
-			itemID &= 0x3FFF;
-
 			if( itemID >= 0x675 && itemID < 0x6F5 )
 				return true;
 			else if( itemID >= 0x314 && itemID < 0x364 )
@@ -1891,13 +1882,38 @@ namespace Server.Multis
 				return true;
 			else if( itemID >= 0x319C && itemID < 0x31B0 )
 				return true;
-			else if( itemID == 0x2D46 ||itemID == 0x2D48 || itemID == 0x2FE2 || itemID == 0x2FE4 )	//ML doors begin here.  Note funkyness.
+			// ML doors
+			else if( itemID == 0x2D46 ||itemID == 0x2D48 || itemID == 0x2FE2 || itemID == 0x2FE4 )
 				return true;
 			else if( itemID >= 0x2D63 && itemID < 0x2D70 )
 				return true;
 			else if( itemID >= 0x319C && itemID < 0x31AF )
 				return true;
 			else if( itemID >= 0x367B && itemID < 0x369B )
+				return true;
+			// SA doors
+			else if( itemID >= 0x409B && itemID < 0x40A3 )
+				return true;
+			else if( itemID >= 0x410C && itemID < 0x4114 )
+				return true;
+			else if( itemID >= 0x41C2 && itemID < 0x41CA )
+				return true;
+			else if( itemID >= 0x41CF && itemID < 0x41D7 )
+				return true;
+			else if( itemID >= 0x436E && itemID < 0x437E )
+				return true;
+			else if( itemID >= 0x46DD && itemID < 0x46E5 )
+				return true;
+			else if( itemID >= 0x4D22 && itemID < 0x4D2A )
+				return true;
+			else if( itemID >= 0x50C8 && itemID < 0x50D8 )
+				return true;
+			else if( itemID >= 0x5142 && itemID < 0x514A )
+				return true;
+			// TOL doors
+			else if ( itemID >= 0x9AD7 && itemID < 0x9AE7 )
+				return true;
+			else if ( itemID >= 0x9B3C && itemID < 0x9B4C )
 				return true;
 
 			return false;
@@ -1936,8 +1952,16 @@ namespace Server.Multis
 			AddHtmlLocalized( 10, 235, 150, 20, 1061900, 1023, false, false ); // Cost To Commit:
 			AddLabel( 170, 235, 90, newPrice.ToString() );
 
-			AddHtmlLocalized( 10, 260, 150, 20, 1061901, 31744, false, false ); // Your Cost:
-			AddLabel( 170, 260, 40, (newPrice - oldPrice).ToString() );
+			if ( newPrice - oldPrice < 0 )
+			{
+				AddHtmlLocalized( 10, 260, 150, 20, 1062059, 992, false, false ); // Your Refund:
+				AddLabel( 170, 260, 70, (oldPrice - newPrice).ToString() );
+			}
+			else
+			{
+				AddHtmlLocalized( 10, 260, 150, 20, 1061901, 31744, false, false ); // Your Cost:
+				AddLabel( 170, 260, 40, (newPrice - oldPrice).ToString() );
+			}
 
 			AddButton( 10, 290, 4005, 4007, 1, GumpButtonType.Reply, 0 );
 			AddHtmlLocalized( 45, 290, 55, 20, 1011036, 32767, false, false ); // OKAY
@@ -1979,7 +2003,7 @@ namespace Server.Multis
 
 			DesignContext d;
 			m_Table.TryGetValue( from, out d );
-			
+
 			return d;
 		}
 
@@ -2027,6 +2051,12 @@ namespace Server.Multis
 
 			if( foundation.Signpost != null )
 				state.Send( foundation.Signpost.RemovePacket );
+
+			if( foundation.SignHanger != null )
+				state.Send( foundation.SignHanger.RemovePacket );
+
+			if( foundation.Sign != null )
+				state.Send( foundation.Sign.RemovePacket );
 		}
 
 		public static void Remove( Mobile from )
@@ -2062,6 +2092,12 @@ namespace Server.Multis
 
 			if( context.Foundation.Signpost != null )
 				context.Foundation.Signpost.SendInfoTo( state );
+
+			if( context.Foundation.SignHanger != null )
+				context.Foundation.SignHanger.SendInfoTo( state );
+
+			if( context.Foundation.Sign != null )
+				context.Foundation.Sign.SendInfoTo( state );
 		}
 	}
 
@@ -2099,7 +2135,7 @@ namespace Server.Multis
 		}
 	}
 
-	public class DesignStateGeneral : Packet
+	public sealed class DesignStateGeneral : Packet
 	{
 		public DesignStateGeneral( HouseFoundation house, DesignState state )
 			: base( 0xBF )
@@ -2112,16 +2148,19 @@ namespace Server.Multis
 		}
 	}
 
-	public class DesignStateDetailed : Packet
+	public sealed class DesignStateDetailed : Packet
 	{
 		public const int MaxItemsPerStairBuffer = 750;
 
-		private static byte[][] m_PlaneBuffers;
-		private static bool[] m_PlaneUsed;
+		private static BufferPool m_PlaneBufferPool = new BufferPool("Housing Plane Buffers", 9, 0x400);
+		private static BufferPool m_StairBufferPool = new BufferPool("Housing Stair Buffers", 6, MaxItemsPerStairBuffer * 5);
+		private static BufferPool m_DeflatedBufferPool = new BufferPool("Housing Deflated Buffers", 1, 0x2000);
 
-		private static byte[][] m_StairBuffers;
+		private byte[][] m_PlaneBuffers;
+		private byte[][] m_StairBuffers;
 
-		private static byte[] m_PrimBuffer = new byte[4];
+		private bool[] m_PlaneUsed = new bool[9];
+		private byte[] m_PrimBuffer = new byte[4];
 
 		public void Write( int value )
 		{
@@ -2175,31 +2214,24 @@ namespace Server.Multis
 			int width = (xMax - xMin) + 1;
 			int height = (yMax - yMin) + 1;
 
-			if( m_PlaneBuffers == null )
+			m_PlaneBuffers = new byte[9][];
+
+			lock (m_PlaneBufferPool)
+				for (int i = 0; i < m_PlaneBuffers.Length; ++i)
+					m_PlaneBuffers[i] = m_PlaneBufferPool.AcquireBuffer();
+
+			m_StairBuffers = new byte[6][];
+
+			lock (m_StairBufferPool)
+				for (int i = 0; i < m_StairBuffers.Length; ++i)
+					m_StairBuffers[i] = m_StairBufferPool.AcquireBuffer();
+
+			Clear( m_PlaneBuffers[0], width * height * 2 );
+
+			for( int i = 0; i < 4; ++i )
 			{
-				m_PlaneBuffers = new byte[9][];
-				m_PlaneUsed = new bool[9];
-
-				for( int i = 0; i < m_PlaneBuffers.Length; ++i )
-					m_PlaneBuffers[i] = new byte[0x400];
-
-				m_StairBuffers = new byte[6][];
-
-				for( int i = 0; i < m_StairBuffers.Length; ++i )
-					m_StairBuffers[i] = new byte[MaxItemsPerStairBuffer * 5];
-			}
-			else
-			{
-				for( int i = 0; i < m_PlaneUsed.Length; ++i )
-					m_PlaneUsed[i] = false;
-
-				Clear( m_PlaneBuffers[0], width * height * 2 );
-
-				for( int i = 0; i < 4; ++i )
-				{
-					Clear( m_PlaneBuffers[1 + i], (width - 1) * (height - 2) * 2 );
-					Clear( m_PlaneBuffers[5 + i], width * (height - 1) * 2 );
-				}
+				Clear( m_PlaneBuffers[1 + i], (width - 1) * (height - 2) * 2 );
+				Clear( m_PlaneBuffers[5 + i], width * (height - 1) * 2 );
 			}
 
 			int totalStairsUsed = 0;
@@ -2210,7 +2242,7 @@ namespace Server.Multis
 				int x = mte.m_OffsetX - xMin;
 				int y = mte.m_OffsetY - yMin;
 				int z = mte.m_OffsetZ;
-				bool floor = (TileData.ItemTable[mte.m_ItemID & 0x3FFF].Height <= 0);
+				bool floor = (TileData.ItemTable[mte.m_ItemID & TileData.MaxItemValue].Height <= 0);
 				int plane, size;
 
 				switch( z )
@@ -2227,7 +2259,7 @@ namespace Server.Multis
 
 						int byteIndex = (totalStairsUsed % MaxItemsPerStairBuffer) * 5;
 
-						stairBuffer[byteIndex++] = (byte)((mte.m_ItemID >> 8) & 0x3F);
+						stairBuffer[byteIndex++] = (byte)(mte.m_ItemID >> 8);
 						stairBuffer[byteIndex++] = (byte)mte.m_ItemID;
 
 						stairBuffer[byteIndex++] = (byte)mte.m_OffsetX;
@@ -2265,7 +2297,7 @@ namespace Server.Multis
 
 					int byteIndex = (totalStairsUsed % MaxItemsPerStairBuffer) * 5;
 
-					stairBuffer[byteIndex++] = (byte)((mte.m_ItemID >> 8) & 0x3F);
+					stairBuffer[byteIndex++] = (byte)(mte.m_ItemID >> 8);
 					stairBuffer[byteIndex++] = (byte)mte.m_ItemID;
 
 					stairBuffer[byteIndex++] = (byte)mte.m_OffsetX;
@@ -2277,17 +2309,24 @@ namespace Server.Multis
 				else
 				{
 					m_PlaneUsed[plane] = true;
-					m_PlaneBuffers[plane][index] = (byte)((mte.m_ItemID >> 8) & 0x3F);
+					m_PlaneBuffers[plane][index] = (byte)(mte.m_ItemID >> 8);
 					m_PlaneBuffers[plane][index + 1] = (byte)mte.m_ItemID;
 				}
 			}
 
 			int planeCount = 0;
 
+			byte[] m_DeflatedBuffer = null;
+			lock (m_DeflatedBufferPool)
+				m_DeflatedBuffer = m_DeflatedBufferPool.AcquireBuffer();
+
 			for( int i = 0; i < m_PlaneBuffers.Length; ++i )
 			{
-				if( !m_PlaneUsed[i] )
+				if (!m_PlaneUsed[i])
+				{
+					m_PlaneBufferPool.ReleaseBuffer(m_PlaneBuffers[i]);
 					continue;
+				}
 
 				++planeCount;
 
@@ -2319,6 +2358,8 @@ namespace Server.Multis
 				Write( m_DeflatedBuffer, 0, deflatedLength );
 
 				totalLength += 4 + deflatedLength;
+				lock (m_PlaneBufferPool)
+					m_PlaneBufferPool.ReleaseBuffer(inflatedBuffer);
 			}
 
 			int totalStairBuffersUsed = (totalStairsUsed + (MaxItemsPerStairBuffer - 1)) / MaxItemsPerStairBuffer;
@@ -2355,14 +2396,18 @@ namespace Server.Multis
 				totalLength += 4 + deflatedLength;
 			}
 
+			lock (m_StairBufferPool)
+				for (int i = 0; i < m_StairBuffers.Length; ++i)
+					m_StairBufferPool.ReleaseBuffer(m_StairBuffers[i]);
+
+			lock (m_DeflatedBufferPool)
+				m_DeflatedBufferPool.ReleaseBuffer(m_DeflatedBuffer);
+
 			m_Stream.Seek( 15, System.IO.SeekOrigin.Begin );
 
 			Write( (short)totalLength ); // Buffer length
 			Write( (byte)planeCount ); // Plane count
 		}
-
-		private static byte[] m_InflatedBuffer = new byte[0x2000];
-		private static byte[] m_DeflatedBuffer = new byte[0x2000];
 
 		private class SendQueueEntry
 		{
@@ -2402,7 +2447,7 @@ namespace Server.Multis
 			m_Sync = new AutoResetEvent( false );
 
 			m_Thread = new Thread( new ThreadStart( CompressionThread ) );
-			m_Thread.Name = "AOS Compression Thread";
+			m_Thread.Name = "Housing Compression Thread";
 			m_Thread.Start();
 		}
 
@@ -2443,7 +2488,7 @@ namespace Server.Multis
 							}
 						}
 
-						Timer.DelayCall( TimeSpan.Zero, new TimerStateCallback( SendPacket_Sandbox ), new object[] { sqe.m_NetState, p } );
+						sqe.m_NetState.Send(p);
 					}
 					catch( Exception e )
 					{
@@ -2467,15 +2512,6 @@ namespace Server.Multis
 					//sqe.m_NetState.Send( new DesignStateDetailed( sqe.m_Serial, sqe.m_Revision, sqe.m_xMin, sqe.m_yMin, sqe.m_xMax, sqe.m_yMax, sqe.m_Tiles ) );
 				}
 			}
-		}
-
-		public static void SendPacket_Sandbox( object state )
-		{
-			object[] states = (object[])state;
-			NetState ns = (NetState)states[0];
-			Packet p = (Packet)states[1];
-
-			ns.Send( p );
 		}
 
 		public static void SendDetails( NetState ns, HouseFoundation house, DesignState state )

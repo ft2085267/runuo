@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Items;
 
@@ -7,8 +7,8 @@ namespace Server.Mobiles
 {
 	public class Vagabond : BaseVendor
 	{
-		private ArrayList m_SBInfos = new ArrayList();
-		protected override ArrayList SBInfos{ get { return m_SBInfos; } }
+		private List<SBInfo> m_SBInfos = new List<SBInfo>();
+		protected override List<SBInfo> SBInfos{ get { return m_SBInfos; } }
 
 		[Constructable]
 		public Vagabond() : base( "the vagabond" )
@@ -24,12 +24,12 @@ namespace Server.Mobiles
 
 		public override void InitOutfit()
 		{
-			AddItem( new FancyShirt( RandomBrightHue() ) );
+			AddItem( new FancyShirt( Utility.RandomBrightHue() ) );
 			AddItem( new Shoes( GetShoeHue() ) );
 			AddItem( new LongPants( GetRandomHue() ) );
 
 			if ( Utility.RandomBool() )
-				AddItem( new Cloak( RandomBrightHue() ) );
+				AddItem( new Cloak( Utility.RandomBrightHue() ) );
 
 			switch ( Utility.Random( 2 ) )
 			{

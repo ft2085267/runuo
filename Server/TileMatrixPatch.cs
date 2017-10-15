@@ -21,6 +21,7 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace Server
 {
@@ -46,7 +47,8 @@ namespace Server
 		{
 			get
 			{
-				return m_LandBlocks;
+				lock (this)
+					return m_LandBlocks;
 			}
 		}
 
@@ -54,7 +56,8 @@ namespace Server
 		{
 			get
 			{
-				return m_StaticBlocks;
+				lock (this)
+					return m_StaticBlocks;
 			}
 		}
 
@@ -77,6 +80,7 @@ namespace Server
 				m_StaticBlocks = PatchStatics( matrix, staDataPath, staIndexPath, staLookupPath );
 		}
 
+		[MethodImpl(MethodImplOptions.Synchronized)]
 		private unsafe int PatchLand( TileMatrix matrix, string dataPath, string indexPath )
 		{
 			using ( FileStream fsData = new FileStream( dataPath, FileMode.Open, FileAccess.Read, FileShare.Read ) )
@@ -95,9 +99,9 @@ namespace Server
 
 						fsData.Seek( 4, SeekOrigin.Current );
 
-						Tile[] tiles = new Tile[64];
+						LandTile[] tiles = new LandTile[64];
 
-						fixed ( Tile *pTiles = tiles )
+						fixed ( LandTile *pTiles = tiles )
 						{
 #if !MONO
 							NativeReader.Read( fsData.SafeFileHandle.DangerousGetHandle(), pTiles, 192 );
@@ -116,8 +120,9 @@ namespace Server
 			}
 		}
 
-		private static StaticTile[] m_TileBuffer = new StaticTile[128];
+		private StaticTile[] m_TileBuffer = new StaticTile[128];
 
+		[MethodImpl(MethodImplOptions.Synchronized)]
 		private unsafe int PatchStatics( TileMatrix matrix, string dataPath, string indexPath, string lookupPath )
 		{
 			using ( FileStream fsData = new FileStream( dataPath, FileMode.Open, FileAccess.Read, FileShare.Read ) )
@@ -177,15 +182,15 @@ namespace Server
 
 								while ( pCur < pEnd )
 								{
-									lists[pCur->m_X & 0x7][pCur->m_Y & 0x7].Add( (short)((pCur->m_ID & 0x3FFF) + 0x4000), pCur->m_Z );
+									lists[pCur->m_X & 0x7][pCur->m_Y & 0x7].Add( (ushort)pCur->m_ID, pCur->m_Z );
 									pCur = pCur + 1;
 								}
 
-								Tile[][][] tiles = new Tile[8][][];
+								StaticTile[][][] tiles = new StaticTile[8][][];
 
 								for ( int x = 0; x < 8; ++x )
 								{
-									tiles[x] = new Tile[8][];
+									tiles[x] = new StaticTile[8][];
 
 									for ( int y = 0; y < 8; ++y )
 										tiles[x][y] = lists[x][y].ToArray();

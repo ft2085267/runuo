@@ -6,15 +6,8 @@ namespace Server.Items
 {
 	public class DeadWood : BaseReagent, ICommodity
 	{
-		string ICommodity.Description
-		{
-			get
-			{
-				return String.Format( "{0} dead wood", Amount );
-			}
-		}
-
 		int ICommodity.DescriptionNumber { get { return LabelNumber; } }
+		bool ICommodity.IsDeedable { get { return true; } }
 
 		[Constructable]
 		public DeadWood() : this( 1 )
@@ -29,8 +22,6 @@ namespace Server.Items
 		public DeadWood( Serial serial ) : base( serial )
 		{
 		}
-
-		
 
 		public override void Serialize( GenericWriter writer )
 		{

@@ -319,7 +319,7 @@ namespace Server.Engines.Plants
 			m_Plant = plant;
 			m_FertileDirt = fertileDirt;
 
-			m_NextGrowth = DateTime.Now + CheckDelay;
+			m_NextGrowth = DateTime.UtcNow + CheckDelay;
 			m_GrowthIndicator = PlantGrowthIndicator.None;
 			m_Hits = MaxHits;
 			m_LeftSeeds = 8;
@@ -328,7 +328,7 @@ namespace Server.Engines.Plants
 
 		public void Reset( bool potions )
 		{
-			m_NextGrowth = DateTime.Now + CheckDelay;
+			m_NextGrowth = DateTime.UtcNow + CheckDelay;
 			m_GrowthIndicator = PlantGrowthIndicator.None;
 
 			Hits = MaxHits;
@@ -418,7 +418,7 @@ namespace Server.Engines.Plants
 		public static void GrowAll()
 		{
 			ArrayList plants = PlantItem.Plants;
-			DateTime now = DateTime.Now;
+			DateTime now = DateTime.UtcNow;
 
 			for ( int i = plants.Count - 1; i >= 0; --i )
 			{
@@ -444,13 +444,13 @@ namespace Server.Engines.Plants
 			if ( !m_Plant.IsGrowable )
 				return;
 
-			if ( DateTime.Now < m_NextGrowth )
+			if ( DateTime.UtcNow < m_NextGrowth )
 			{
 				m_GrowthIndicator = PlantGrowthIndicator.Delay;
 				return;
 			}
 
-			m_NextGrowth = DateTime.Now + CheckDelay;
+			m_NextGrowth = DateTime.UtcNow + CheckDelay;
 
 			if ( !m_Plant.ValidGrowthLocation )
 			{
@@ -580,7 +580,7 @@ namespace Server.Engines.Plants
 			}
 			else
 			{
-				if ( Pollinated && LeftSeeds > 0 && m_Plant.IsCrossable )
+				if ( Pollinated && LeftSeeds > 0 && m_Plant.Reproduces )
 				{
 					LeftSeeds--;
 					AvailableSeeds++;
@@ -643,7 +643,7 @@ namespace Server.Engines.Plants
 
 		public void Save( GenericWriter writer )
 		{
-			writer.Write( (int) 1 ); // version
+			writer.Write( (int) 2 ); // version
 
 			writer.Write( (bool) m_FertileDirt );
 
@@ -707,6 +707,9 @@ namespace Server.Engines.Plants
 
 			m_AvailableResources = reader.ReadInt();
 			m_LeftResources = reader.ReadInt();
+
+			if ( version < 2 && PlantHueInfo.IsCrossable( m_SeedHue ) )
+				m_SeedHue |= PlantHue.Reproduces;
 		}
 	}
 }

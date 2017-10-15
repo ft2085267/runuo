@@ -42,8 +42,8 @@ namespace Server.Mobiles
 			SetSkill( SkillName.Tactics, 110.0, 140.0 );
 			SetSkill( SkillName.Wrestling, 115.0, 145.0 );
 
-			Fame = 55000;
-			Karma = -55000;
+			Fame = 22000;
+			Karma = -15000;
 
 			VirtualArmor = 60;
 
@@ -69,6 +69,7 @@ namespace Server.Mobiles
 		public override ScaleType ScaleType{ get{ return ( Body == 12 ? ScaleType.Yellow : ScaleType.Red ); } }
 		public override FoodType FavoriteFood{ get{ return FoodType.Meat; } }
 		public override bool CanAngerOnTame { get { return true; } }
+		public override bool CanFly { get { return true; } }
 
 		public override WeaponAbility GetWeaponAbility()
 		{

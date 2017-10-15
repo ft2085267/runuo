@@ -85,7 +85,7 @@ namespace Server.Engines.Craft
 
 			DrawItem();
 			DrawSkill();
-			DrawRessource();
+			DrawResource();
 
 			/*
 			if( craftItem.RequiresSE )
@@ -122,7 +122,7 @@ namespace Server.Engines.Craft
 		{
 			Type type = m_CraftItem.ItemType;
 
-			AddItem( 20, 50, CraftItem.ItemIDOf( type ) );
+			AddItem( 20, 50, CraftItem.ItemIDOf( type ), m_CraftItem.ItemHue );
 
 			if ( m_CraftItem.IsMarkable( type ) )
 			{
@@ -141,7 +141,7 @@ namespace Server.Engines.Craft
 				if ( minSkill < 0 )
 					minSkill = 0;
 
-				AddHtmlLocalized( 170, 132 + (i * 20), 200, 18, 1044060 + (int)skill.SkillToMake, LabelColor, false, false );
+				AddHtmlLocalized( 170, 132 + (i * 20), 200, 18, AosSkillBonuses.GetLabel( skill.SkillToMake ), LabelColor, false, false );
 				AddLabel( 430, 132 + (i * 20), LabelHue, String.Format( "{0:F1}", minSkill ) );
 			}
 
@@ -180,7 +180,7 @@ namespace Server.Engines.Craft
 		private static Type typeofBlankScroll = typeof( BlankScroll );
 		private static Type typeofSpellScroll = typeof( SpellScroll );
 
-		public void DrawRessource()
+		public void DrawResource()
 		{
 			bool retainedColor = false;
 

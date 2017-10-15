@@ -99,17 +99,6 @@ namespace Server
 		ValoriaShips
 	}
 
-
-	public interface ISpawner
-	{
-		bool UnlinkOnTaming{ get; }
-		Point3D Home{ get; }
-		int Range{ get; }
-
-		void Remove( object spawn );
-	}
-
-
 	public class Region : IComparable
 	{
 		private static List<Region> m_Regions = new List<Region>();
@@ -138,7 +127,7 @@ namespace Server
 		private static Type m_DefaultRegionType = typeof( Region );
 		public static Type DefaultRegionType{ get{ return m_DefaultRegionType; } set{ m_DefaultRegionType = value; } }
 
-		private static TimeSpan m_StaffLogoutDelay = TimeSpan.FromSeconds( 10.0 );
+		private static TimeSpan m_StaffLogoutDelay = TimeSpan.Zero;
 		private static TimeSpan m_DefaultLogoutDelay = TimeSpan.FromMinutes( 5.0 );
 
 		public static TimeSpan StaffLogoutDelay{ get{ return m_StaffLogoutDelay; } set{ m_StaffLogoutDelay = value; } }
@@ -992,11 +981,11 @@ namespace Server
 			}
 
 
-			object oMusic = this.DefaultMusic;
+			MusicName music = this.DefaultMusic;
 
-			ReadEnum( xml["music"], "name", typeof( MusicName ), ref oMusic, false );
+			ReadEnum( xml["music"], "name", ref music, false );
 
-			m_Music = (MusicName) oMusic;
+			m_Music = music;
 		}
 
 		protected static string GetAttribute( XmlElement xml, string attribute, bool mandatory )
@@ -1101,7 +1090,7 @@ namespace Server
 
 			try
 			{
-				value = XmlConvert.ToDateTime( s, XmlDateTimeSerializationMode.Local );
+				value = XmlConvert.ToDateTime( s, XmlDateTimeSerializationMode.Utc );
 			}
 			catch
 			{
@@ -1137,29 +1126,32 @@ namespace Server
 			return true;
 		}
 
-		public static bool ReadEnum( XmlElement xml, string attribute, Type type, ref object value )
+		public static bool ReadEnum<T>( XmlElement xml, string attribute, ref T value ) where T : struct
 		{
-			return ReadEnum( xml, attribute, type, ref value, true );
+			return ReadEnum( xml, attribute, ref value, true );
 		}
 
-		public static bool ReadEnum( XmlElement xml, string attribute, Type type, ref object value, bool mandatory )
+		public static bool ReadEnum<T>( XmlElement xml, string attribute, ref T value, bool mandatory ) where T : struct // We can't limit the where clause to Enums only
 		{
 			string s = GetAttribute( xml, attribute, mandatory );
 
 			if ( s == null )
 				return false;
 
-			try
+			Type type = typeof(T);
+
+			T tempVal;
+
+			if( type.IsEnum && Enum.TryParse( s, true, out tempVal ) )
 			{
-				value = Enum.Parse( type, s, true );
+				value = tempVal;
+				return true;
 			}
-			catch
+			else
 			{
 				Console.WriteLine( "Could not parse {0} enum attribute '{1}' in element '{2}'", type, attribute, xml.Name );
 				return false;
 			}
-
-			return true;
 		}
 
 		public static bool ReadMap( XmlElement xml, string attribute, ref Map value )

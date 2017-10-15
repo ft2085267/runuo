@@ -37,12 +37,12 @@ namespace Server
 
 			try
 			{
-				if( (pm.LastValorLoss + LossDelay) < DateTime.Now )
+				if( (pm.LastValorLoss + LossDelay) < DateTime.UtcNow )
 				{
 					if( VirtueHelper.Atrophy( from, VirtueName.Valor, LossAmount ) )
 						from.SendLocalizedMessage( 1054040 ); // You have lost some Valor.
 
-					pm.LastValorLoss = DateTime.Now;
+					pm.LastValorLoss = DateTime.UtcNow;
 				}
 			}
 			catch
@@ -111,7 +111,7 @@ namespace Server
 					{
 						VirtueHelper.Atrophy( from, VirtueName.Valor, 11000 );
 						from.SendLocalizedMessage( 1054037 ); // Your challenge is heard by the Champion of this region! Beware its wrath!
-						idol.Spawn.Start();
+						idol.Spawn.EndRestart();
 						idol.Spawn.HasBeenAdvanced = true;
 					}
 					else

@@ -55,6 +55,8 @@ namespace Server.Gumps
 
 			if ( info.ButtonID == 1 )
 			{
+				m_Vendor.Say( from.Name );
+
 				if ( !m_VI.Valid || !m_VI.Item.IsChildOf( m_Vendor.Backpack ) )
 				{
 					m_Vendor.SayTo( from, 503216 ); // You can't buy that.
@@ -592,13 +594,30 @@ namespace Server.Gumps
 						if ( Categories[cat].Layer == Layer.FacialHair )
 						{
 							if ( m_Vendor.Female )
-							from.SendLocalizedMessage( 1010639 ); // You cannot place facial hair on a woman!
+							{
+								from.SendLocalizedMessage( 1010639 ); // You cannot place facial hair on a woman!
+							}
 							else
+							{
+								int hue = m_Vendor.FacialHairHue;
+
+								m_Vendor.FacialHairItemID = 0;
+								m_Vendor.ProcessDelta(); // invalidate item ID for clients
+
 								m_Vendor.FacialHairItemID = Categories[cat].Entries[ent].ItemID;
+								m_Vendor.FacialHairHue = hue;
+							}
 						}
 						else if ( Categories[cat].Layer == Layer.Hair )
-							m_Vendor.HairItemID = Categories[cat].Entries[ent].ItemID;
+						{
+							int hue = m_Vendor.HairHue;
 
+							m_Vendor.HairItemID = 0;
+							m_Vendor.ProcessDelta(); // invalidate item ID for clients
+
+							m_Vendor.HairItemID = Categories[cat].Entries[ent].ItemID;
+							m_Vendor.HairHue = hue;
+						}
 						else
 						{
 							item = Categories[cat].Entries[ent].Create();
@@ -623,24 +642,37 @@ namespace Server.Gumps
 					{
 						if ( cat < Categories.Length && cat >= 0 )
 						{
-							Item item = null;
+							CustomCategory category = Categories[cat];
 
-							List<Item> items = m_Vendor.Items;
-
-							for ( int i = 0; item == null && i < items.Count; ++i )
+							if ( category.Layer == Layer.Hair )
 							{
-								Item checkitem = items[i];
-								Type type = checkitem.GetType();
-
-								for ( int j = 0; item == null && j < Categories[cat].Entries.Length; ++j )
-								{
-									if ( type == Categories[cat].Entries[j].Type )
-										item = checkitem;
-								}
+								new PVHairHuePicker( false, m_Vendor, from ).SendTo( state );
 							}
+							else if ( category.Layer == Layer.FacialHair )
+							{
+								new PVHairHuePicker( true, m_Vendor, from ).SendTo( state );
+							}
+							else
+							{
+								Item item = null;
 
-							if ( item != null )
-								new PVHuePicker( item, m_Vendor, from ).SendTo( state );
+								List<Item> items = m_Vendor.Items;
+
+								for ( int i = 0; item == null && i < items.Count; ++i )
+								{
+									Item checkitem = items[i];
+									Type type = checkitem.GetType();
+
+									for ( int j = 0; item == null && j < category.Entries.Length; ++j )
+									{
+										if ( type == category.Entries[j].Type )
+											item = checkitem;
+									}
+								}
+
+								if ( item != null )
+									new PVHuePicker( item, m_Vendor, from ).SendTo( state );
+							}
 						}
 					}
 					else
@@ -649,24 +681,37 @@ namespace Server.Gumps
 
 						if ( cat < Categories.Length && cat >= 0 )
 						{
-							Item item = null;
+							CustomCategory category = Categories[cat];
 
-							List<Item> items = m_Vendor.Items;
-
-							for ( int i = 0; item == null && i < items.Count; ++i )
+							if ( category.Layer == Layer.Hair )
 							{
-								Item checkitem = items[i];
-								Type type = checkitem.GetType();
-
-								for ( int j = 0; item == null && j < Categories[cat].Entries.Length; ++j )
-								{
-									if ( type == Categories[cat].Entries[j].Type )
-										item = checkitem;
-								}
+								m_Vendor.HairItemID = 0;
 							}
+							else if ( category.Layer == Layer.FacialHair )
+							{
+								m_Vendor.FacialHairItemID = 0;
+							}
+							else
+							{
+								Item item = null;
 
-							if ( item != null )
-								item.Delete();
+								List<Item> items = m_Vendor.Items;
+
+								for ( int i = 0; item == null && i < items.Count; ++i )
+								{
+									Item checkitem = items[i];
+									Type type = checkitem.GetType();
+
+									for ( int j = 0; item == null && j < category.Entries.Length; ++j )
+									{
+										if ( type == category.Entries[j].Type )
+											item = checkitem;
+									}
+								}
+
+								if ( item != null )
+									item.Delete();
+							}
 
 							from.SendGump( new PlayerVendorCustomizeGump( m_Vendor, from ) );
 						}
@@ -681,10 +726,10 @@ namespace Server.Gumps
 			private Mobile m_Vendor;
 			private Mobile m_Mob;
 
-			public PVHuePicker( Item item, Mobile v, Mobile from ) : base( (item.Layer == Layer.Hair || item.Layer == Layer.FacialHair) ? 0xFAB : item.ItemID )
+			public PVHuePicker( Item item, Mobile v, Mobile from ) : base( item.ItemID )
 			{
-				m_Vendor = v;
 				m_Item = item;
+				m_Vendor = v;
 				m_Mob = from;
 			}
 
@@ -700,6 +745,39 @@ namespace Server.Gumps
 					return;
 
 				m_Item.Hue = hue;
+				m_Mob.SendGump( new PlayerVendorCustomizeGump( m_Vendor, m_Mob ) );
+			}
+		}
+
+		private class PVHairHuePicker : HuePicker
+		{
+			private bool m_FacialHair;
+			private Mobile m_Vendor;
+			private Mobile m_Mob;
+
+			public PVHairHuePicker( bool facialHair, Mobile v, Mobile from ) : base( 0xFAB )
+			{
+				m_FacialHair = facialHair;
+				m_Vendor = v;
+				m_Mob = from;
+			}
+
+			public override void OnResponse( int hue )
+			{
+				if ( m_Vendor.Deleted )
+					return;
+
+				if ( m_Vendor is PlayerVendor && !((PlayerVendor)m_Vendor).CanInteractWith( m_Mob, true ) )
+					return;
+
+				if ( m_Vendor is PlayerBarkeeper && !((PlayerBarkeeper)m_Vendor).IsOwner( m_Mob ) )
+					return;
+
+				if ( m_FacialHair )
+					m_Vendor.FacialHairHue = hue;
+				else
+					m_Vendor.HairHue = hue;
+
 				m_Mob.SendGump( new PlayerVendorCustomizeGump( m_Vendor, m_Mob ) );
 			}
 		}
@@ -894,6 +972,8 @@ namespace Server.Gumps
 				}
 				default:
 				{
+					int hairhue = 0;
+
 					if ( (info.ButtonID & 0x100) != 0 ) // Hair style selected
 					{
 						int index = info.ButtonID & 0xFF;
@@ -903,7 +983,14 @@ namespace Server.Gumps
 
 						HairOrBeard hairStyle = m_HairStyles[index];
 
+						hairhue = m_Vendor.HairHue;
+
+						m_Vendor.HairItemID = 0;
+						m_Vendor.ProcessDelta();
+
 						m_Vendor.HairItemID = hairStyle.ItemID;
+
+						m_Vendor.HairHue = hairhue;
 
 						from.SendGump( new NewPlayerVendorCustomizeGump( m_Vendor ) );
 					}
@@ -919,7 +1006,14 @@ namespace Server.Gumps
 
 						HairOrBeard beardStyle = m_BeardStyles[index];
 
+						hairhue = m_Vendor.FacialHairHue;
+
+						m_Vendor.FacialHairItemID = 0;
+						m_Vendor.ProcessDelta();
+
 						m_Vendor.FacialHairItemID = beardStyle.ItemID;
+
+						m_Vendor.FacialHairHue = hairhue;
 
 						from.SendGump( new NewPlayerVendorCustomizeGump( m_Vendor ) );
 					}

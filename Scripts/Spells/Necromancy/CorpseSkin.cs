@@ -55,6 +55,9 @@ namespace Server.Spells.Necromancy
 				else
 					m.SendLocalizedMessage( 1061689 ); // Your skin turns dry and corpselike.
 
+				 if ( m.Spell != null )
+					m.Spell.OnCasterHurt();
+				
 				m.FixedParticles( 0x373A, 1, 15, 9913, 67, 7, EffectLayer.Head );
 				m.PlaySound( 0x1BB );
 
@@ -81,6 +84,8 @@ namespace Server.Spells.Necromancy
 
 				for ( int i = 0; i < mods.Length; ++i )
 					m.AddResistanceMod( mods[i] );
+
+				HarmfulSpell( m );
 			}
 
 			FinishSequence();

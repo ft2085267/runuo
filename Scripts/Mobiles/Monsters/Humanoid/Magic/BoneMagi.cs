@@ -10,7 +10,7 @@ namespace Server.Mobiles
 		[Constructable]
 		public BoneMagi() : base( AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4 )
 		{
-			Name = "a bone magi";
+			Name = "a bone mage";
 			Body = 148;
 			BaseSoundID = 451;
 
@@ -35,6 +35,8 @@ namespace Server.Mobiles
 			SetSkill( SkillName.MagicResist, 55.1, 70.0 );
 			SetSkill( SkillName.Tactics, 45.1, 60.0 );
 			SetSkill( SkillName.Wrestling, 45.1, 55.0 );
+			SetSkill( SkillName.Necromancy, 89, 99.1 );
+			SetSkill( SkillName.SpiritSpeak, 90.0, 99.0 );
 
 			Fame = 3000;
 			Karma = -3000;

@@ -1,14 +1,17 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Items;
 using Server.Engines.CannedEvil;
-using System.Collections.Generic;
 
 namespace Server.Mobiles
 {
 	public abstract class BaseChampion : BaseCreature
 	{
+		public override bool CanMoveOverObstacles { get { return true; } }
+		public override bool CanDestroyObstacles { get { return true; } }
+
 		public BaseChampion( AIType aiType ) : this( aiType, FightMode.Closest )
 		{
 		}

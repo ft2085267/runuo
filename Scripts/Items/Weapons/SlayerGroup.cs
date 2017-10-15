@@ -67,7 +67,7 @@ namespace Server.Items
 
 			humanoid.Opposition = new SlayerGroup[]{ undead };
 			humanoid.FoundOn = new Type[]{ typeof( BoneKnight ), typeof( Lich ), typeof( LichLord ) };
-			humanoid.Super = new SlayerEntry( SlayerName.Repond, typeof( ArcticOgreLord ), typeof( Cyclops ), typeof( Ettin ), typeof( EvilMage ), typeof( EvilMageLord ), typeof( FrostTroll ), typeof( MeerCaptain ), typeof( MeerEternal ), typeof( MeerMage ), typeof( MeerWarrior ), typeof( Ogre ), typeof( OgreLord ), typeof( Orc ), typeof( OrcBomber ), typeof( OrcBrute ), typeof( OrcCaptain ), /*typeof( OrcChopper ), typeof( OrcScout ),*/ typeof( OrcishLord ), typeof( OrcishMage ), typeof( Ratman ), typeof( RatmanArcher ), typeof( RatmanMage ), typeof( SavageRider ), typeof( SavageShaman ), typeof( Savage ), typeof( Titan ), typeof( Troll ) );
+			humanoid.Super = new SlayerEntry( SlayerName.Repond, typeof( ArcticOgreLord ), typeof( Cyclops ), typeof( Ettin ), typeof( EvilMage ), typeof( EvilMageLord ), typeof( FrostTroll ), typeof( MeerCaptain ), typeof( MeerEternal ), typeof( MeerMage ), typeof( MeerWarrior ), typeof( Ogre ), typeof( OgreLord ), typeof( Orc ), typeof( OrcBomber ), typeof( OrcBrute ), typeof( OrcCaptain ), /*typeof( OrcChopper ), typeof( OrcScout ),*/ typeof( OrcishLord ), typeof( OrcishMage ), typeof( Ratman ), typeof( RatmanArcher ), typeof( RatmanMage ), typeof( SavageRider ), typeof( SavageShaman ), typeof( Savage ), typeof( Titan ), typeof( Troglodyte ), typeof( Troll ) );
 			humanoid.Entries = new SlayerEntry[]
 				{
 					new SlayerEntry( SlayerName.OgreTrashing, typeof( Ogre ), typeof( OgreLord ), typeof( ArcticOgreLord ) ),
@@ -80,12 +80,12 @@ namespace Server.Items
 			undead.Entries = new SlayerEntry[0];
 
 			fey.Opposition = new SlayerGroup[]{ abyss };
-			fey.Super = new SlayerEntry( SlayerName.Fey, typeof( Centaur ), typeof( EtherealWarrior ), typeof( Kirin ), typeof( LordOaks ), typeof( Pixie ), typeof( Silvani ), typeof( Treefellow ), typeof( Unicorn ), typeof( Wisp ), typeof( MLDryad ), typeof( Satyr ) );
+			fey.Super = new SlayerEntry( SlayerName.Fey, typeof( Centaur ), typeof( CuSidhe ), typeof( EtherealWarrior ), typeof( Kirin ), typeof( LordOaks ), typeof( Pixie ), typeof( Silvani ), typeof( Treefellow ), typeof( Unicorn ), typeof( Wisp ), typeof( MLDryad ), typeof( Satyr ) );
 			fey.Entries = new SlayerEntry[0];
 
 			elemental.Opposition = new SlayerGroup[]{ abyss };
 			elemental.FoundOn = new Type[]{ typeof( Balron ), typeof( Daemon ) };
-			elemental.Super = new SlayerEntry( SlayerName.ElementalBan,/* typeof( AcidElemental ),*/ typeof( AgapiteElemental ), typeof( AirElemental ), typeof( SummonedAirElemental ), typeof( BloodElemental ), typeof( BronzeElemental ), typeof( CopperElemental ), typeof( CrystalElemental ), typeof( DullCopperElemental ), typeof( EarthElemental ), typeof( SummonedEarthElemental ), typeof( Efreet ), typeof( FireElemental ), typeof( SummonedFireElemental ), typeof( GoldenElemental ), typeof( IceElemental ), typeof( KazeKemono ), typeof( PoisonElemental ), typeof( RaiJu ), typeof( SandVortex ), typeof( ShadowIronElemental ), typeof( SnowElemental ), typeof( ValoriteElemental ), typeof( VeriteElemental ), typeof( WaterElemental ), typeof( SummonedWaterElemental ) );
+			elemental.Super = new SlayerEntry( SlayerName.ElementalBan, typeof( AcidElemental ), typeof( AgapiteElemental ), typeof( AirElemental ), typeof( SummonedAirElemental ), typeof( BloodElemental ), typeof( BronzeElemental ), typeof( CopperElemental ), typeof( CrystalElemental ), typeof( DullCopperElemental ), typeof( EarthElemental ), typeof( SummonedEarthElemental ), typeof( Efreet ), typeof( FireElemental ), typeof( SummonedFireElemental ), typeof( GoldenElemental ), typeof( IceElemental ), typeof( KazeKemono ), typeof( PoisonElemental ), typeof( RaiJu ), typeof( SandVortex ), typeof( ShadowIronElemental ), typeof( SnowElemental ), typeof( ValoriteElemental ), typeof( VeriteElemental ), typeof( WaterElemental ), typeof( SummonedWaterElemental ) );
 			elemental.Entries = new SlayerEntry[]
 				{
 					new SlayerEntry( SlayerName.BloodDrinking, typeof( BloodElemental ) ),
@@ -134,10 +134,10 @@ namespace Server.Items
 
 			reptilian.Opposition = new SlayerGroup[]{ arachnid };
 			reptilian.FoundOn = new Type[]{ typeof( TerathanAvenger ), typeof( TerathanMatriarch ) };
-			reptilian.Super = new SlayerEntry( SlayerName.ReptilianDeath, typeof( AncientWyrm ), typeof( DeepSeaSerpent ), typeof( GreaterDragon ), typeof( Dragon ), typeof( Drake ), typeof( GiantIceWorm ), typeof( IceSerpent ), typeof( GiantSerpent ), typeof( Hiryu ), typeof( IceSnake ), typeof( JukaLord ), typeof( JukaMage ), typeof( JukaWarrior ), typeof( LavaSerpent ), typeof( LavaSnake ), typeof( LesserHiryu ), typeof( Lizardman ), typeof( OphidianArchmage ), typeof( OphidianKnight ), typeof( OphidianMage ), typeof( OphidianMatriarch ), typeof( OphidianWarrior ), typeof( SeaSerpent ), typeof( Serado ), typeof( SerpentineDragon ), typeof( ShadowWyrm ), typeof( SilverSerpent ), typeof( SkeletalDragon ), typeof( Snake ), typeof( SwampDragon ), typeof( WhiteWyrm ), typeof( Wyvern ), typeof( Yamandon ) );
+			reptilian.Super = new SlayerEntry( SlayerName.ReptilianDeath, typeof( AncientWyrm ), typeof( DeepSeaSerpent ), typeof( GreaterDragon ), typeof( Dragon ), typeof( Drake ), typeof( GiantIceWorm ), typeof( IceSerpent ), typeof( GiantSerpent ), typeof( Hiryu ), typeof( IceSnake ), typeof( JukaLord ), typeof( JukaMage ), typeof( JukaWarrior ), typeof( LavaSerpent ), typeof( LavaSnake ), typeof( LesserHiryu ), typeof( Lizardman ), typeof( OphidianArchmage ), typeof( OphidianKnight ), typeof( OphidianMage ), typeof( OphidianMatriarch ), typeof( OphidianWarrior ), typeof( Reptalon ), typeof( SeaSerpent ), typeof( Serado ), typeof( SerpentineDragon ), typeof( ShadowWyrm ), typeof( SilverSerpent ), typeof( SkeletalDragon ), typeof( Snake ), typeof( SwampDragon ), typeof( WhiteWyrm ), typeof( Wyvern ), typeof( Yamandon ) );
 			reptilian.Entries = new SlayerEntry[]
 				{
-					new SlayerEntry( SlayerName.DragonSlaying, typeof( AncientWyrm ), typeof( GreaterDragon ), typeof( Dragon ), typeof( Drake ), typeof( Hiryu ), typeof( LesserHiryu ), typeof( SerpentineDragon ), typeof( ShadowWyrm ), typeof( SkeletalDragon ), typeof( SwampDragon ), typeof( WhiteWyrm ), typeof( Wyvern ) ),
+					new SlayerEntry( SlayerName.DragonSlaying, typeof( AncientWyrm ), typeof( GreaterDragon ), typeof( Dragon ), typeof( Drake ), typeof( Hiryu ), typeof( LesserHiryu ), typeof( Reptalon ), typeof( SerpentineDragon ), typeof( ShadowWyrm ), typeof( SkeletalDragon ), typeof( SwampDragon ), typeof( WhiteWyrm ), typeof( Wyvern ) ),
 					new SlayerEntry( SlayerName.LizardmanSlaughter, typeof( Lizardman ) ),
 					new SlayerEntry( SlayerName.Ophidian, typeof( OphidianArchmage ), typeof( OphidianKnight ), typeof( OphidianMage ), typeof( OphidianMatriarch ), typeof( OphidianWarrior ) ),
 					new SlayerEntry( SlayerName.SnakesBane, typeof( DeepSeaSerpent ), typeof( GiantIceWorm ), typeof( GiantSerpent ), typeof( IceSerpent ), typeof( IceSnake ), typeof( LavaSerpent ), typeof( LavaSnake ), typeof( SeaSerpent ), typeof( Serado ), typeof( SilverSerpent ), typeof( Snake ), typeof( Yamandon ) )

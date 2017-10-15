@@ -1,4 +1,5 @@
 using System;
+using Server.Mobiles;
 using Server.Network;
 using Server.Gumps;
 
@@ -203,7 +204,8 @@ namespace Server.Menus.Questions
 
 				new TeleportTimer( m_Mobile, entry, TimeSpan.FromSeconds( 10.0 + (Utility.RandomDouble() * 110.0) ) ).Start();
 
-				m_Mobile.UsedStuckMenu();
+				if (m_Mobile is PlayerMobile)
+					((PlayerMobile)m_Mobile).UsedStuckMenu();
 			}
 			else
 			{
@@ -219,12 +221,12 @@ namespace Server.Menus.Questions
 			public CloseTimer( Mobile m ) : base( TimeSpan.Zero, TimeSpan.FromSeconds( 1.0 ) )
 			{
 				m_Mobile = m;
-				m_End = DateTime.Now + TimeSpan.FromMinutes( 3.0 );
+				m_End = DateTime.UtcNow + TimeSpan.FromMinutes( 3.0 );
 			}
 
 			protected override void OnTick()
 			{
-				if ( m_Mobile.NetState == null || DateTime.Now > m_End )
+				if ( m_Mobile.NetState == null || DateTime.UtcNow > m_End )
 				{
 					m_Mobile.Frozen = false;
 					m_Mobile.CloseGump( typeof( StuckMenu ) );
@@ -250,12 +252,12 @@ namespace Server.Menus.Questions
 
 				m_Mobile = mobile;
 				m_Destination = destination;
-				m_End = DateTime.Now + delay;
+				m_End = DateTime.UtcNow + delay;
 			}
 
 			protected override void OnTick()
 			{
-				if ( DateTime.Now < m_End )
+				if ( DateTime.UtcNow < m_End )
 				{
 					m_Mobile.Frozen = true;
 				}

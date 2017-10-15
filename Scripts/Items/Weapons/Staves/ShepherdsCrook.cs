@@ -3,6 +3,7 @@ using Server.Network;
 using Server.Items;
 using Server.Targeting;
 using Server.Mobiles;
+using Server.Engines.CannedEvil;
 
 namespace Server.Items
 {
@@ -16,6 +17,7 @@ namespace Server.Items
 		public override int AosMinDamage{ get{ return 13; } }
 		public override int AosMaxDamage{ get{ return 15; } }
 		public override int AosSpeed{ get{ return 40; } }
+		public override float MlSpeed{ get{ return 2.75f; } }
 
 		public override int OldStrengthReq{ get{ return 10; } }
 		public override int OldMinDamage{ get{ return 3; } }
@@ -70,7 +72,7 @@ namespace Server.Items
 				{
 					BaseCreature bc = (BaseCreature)targ;
 
-					if ( bc.Body.IsAnimal )
+					if ( IsHerdable( bc ) )
 					{
 						if ( bc.Controlled )
 						{
@@ -93,6 +95,44 @@ namespace Server.Items
 				}
 			}
 
+			private static Type[] m_ChampTamables = new Type[]
+			{
+				typeof( StrongMongbat ), typeof( Imp ), typeof( Scorpion ), typeof( GiantSpider ),
+				typeof( Snake ), typeof( LavaLizard ), typeof( Drake ), typeof( Dragon ),
+				typeof( Kirin ), typeof( Unicorn ), typeof( GiantRat ), typeof( Slime ),
+				typeof( DireWolf ), typeof( HellHound ), typeof( DeathwatchBeetle ), 
+				typeof( LesserHiryu ), typeof( Hiryu )
+			};
+
+			private bool IsHerdable( BaseCreature bc )
+			{
+				if ( bc.IsParagon )
+					return false;
+
+				if ( bc.Tamable )
+					return true;
+
+				Map map = bc.Map;
+
+				ChampionSpawnRegion region = Region.Find( bc.Home, map ) as ChampionSpawnRegion;
+
+				if ( region != null )
+				{
+					ChampionSpawn spawn = region.ChampionSpawn;
+
+					if ( spawn != null && spawn.IsChampionSpawn( bc ) )
+					{
+						Type t = bc.GetType();
+
+						foreach ( Type type in m_ChampTamables )
+							if ( type == t )
+								return true;
+					}
+				}
+
+				return false;
+			}
+
 			private class InternalTarget : Target
 			{
 				private BaseCreature m_Creature;
@@ -106,9 +146,20 @@ namespace Server.Items
 				{
 					if ( targ is IPoint2D )
 					{
-						if ( from.CheckTargetSkill( SkillName.Herding, m_Creature, 0, 100 ) )
+						double min = m_Creature.MinTameSkill - 30;
+						double max = m_Creature.MinTameSkill + 30 + Utility.Random( 10 );
+
+						if ( max <= from.Skills[ SkillName.Herding ].Value )
+							m_Creature.PrivateOverheadMessage( MessageType.Regular, 0x3B2, 502471, from.NetState ); // That wasn't even challenging.
+
+						if ( from.CheckTargetSkill( SkillName.Herding, m_Creature, min, max ) )
 						{
-							m_Creature.TargetLocation = new Point2D( (IPoint2D)targ );
+							IPoint2D p = (IPoint2D) targ;
+
+							if ( targ != from )
+								p = new Point2D( p.X, p.Y );
+
+							m_Creature.TargetLocation = p;
 							from.SendLocalizedMessage( 502479 ); // The animal walks where it was instructed to.
 						}
 						else

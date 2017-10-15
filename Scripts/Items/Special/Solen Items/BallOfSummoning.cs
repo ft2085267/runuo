@@ -256,11 +256,11 @@ namespace Server.Items
 			{
 				MessageHelper.SendLocalizedMessageTo( this, from, 1054127, 0x22 ); // The Crystal Ball fills with a red mist. You appear to have let your bond to your pet deteriorate.
 			}
-			else if ( from.Map == Map.Ilshenar || from.Region.IsPartOf( typeof( DungeonRegion ) ) || from.Region.IsPartOf( typeof( Jail ) ) )
+			else if ( from.Map == Map.Ilshenar || from.Region.IsPartOf( typeof( DungeonRegion ) ) || from.Region.IsPartOf( typeof( Jail ) ) || from.Region.IsPartOf( typeof( Server.Engines.ConPVP.SafeZone ) ) )
 			{
 				from.Send( new AsciiMessage( this.Serial, this.ItemID, MessageType.Regular, 0x22, 3, "", "You cannot summon your pet to this location." ) );
 			}
-			else if ( Core.ML && from is PlayerMobile && DateTime.Now < ((PlayerMobile)from).LastPetBallTime.AddSeconds( 15.0 ) )
+			else if ( Core.ML && from is PlayerMobile && DateTime.UtcNow < ((PlayerMobile)from).LastPetBallTime.AddSeconds( 15.0 ) )
 			{
 				MessageHelper.SendLocalizedMessageTo( this, from, 1080072, 0x22 ); // You must wait a few seconds before you can summon your pet.
 			}
@@ -279,6 +279,9 @@ namespace Server.Items
 		{
 			BaseCreature pet = this.Pet;
 
+			if ( pet == null )
+				return;
+
 			Charges--;
 
 			if ( pet.IsStabled )
@@ -292,7 +295,11 @@ namespace Server.Items
 				pet.ControlOrder = OrderType.Follow;
 
 				pet.IsStabled = false;
+				pet.StabledBy = null;
 				from.Stabled.Remove( pet );
+
+				if ( from is PlayerMobile )
+					((PlayerMobile)from).AutoStabled.Remove( pet );
 			}
 
 			pet.MoveToWorld( from.Location, from.Map );
@@ -301,7 +308,7 @@ namespace Server.Items
 
 			if ( from is PlayerMobile )
 			{
-				((PlayerMobile)from).LastPetBallTime = DateTime.Now;
+				((PlayerMobile)from).LastPetBallTime = DateTime.UtcNow;
 			}
 		}
 

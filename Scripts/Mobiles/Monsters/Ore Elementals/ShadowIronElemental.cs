@@ -44,7 +44,9 @@ namespace Server.Mobiles
 
 			VirtualArmor = 23;
 
-			PackItem( new ShadowIronOre( oreAmount ) );
+			Item ore = new ShadowIronOre( oreAmount );
+			ore.ItemID = 0x19B9;
+			PackItem( ore );
 		}
 
 		public override void GenerateLoot()
@@ -56,6 +58,8 @@ namespace Server.Mobiles
 		public override bool AutoDispel{ get{ return true; } }
 		public override bool BleedImmune{ get{ return true; } }
 		public override int TreasureMapLevel{ get{ return 1; } }
+		public override Poison PoisonImmune{ get{ return Poison.Deadly; } }
+		public override bool BreathImmune{ get{ return true; } }
 
 		public override void AlterMeleeDamageFrom( Mobile from, ref int damage )
 		{
@@ -71,6 +75,11 @@ namespace Server.Mobiles
 		public override void AlterDamageScalarFrom( Mobile caster, ref double scalar )
 		{
 			scalar = 0.0; // Immune to magic
+		}
+		
+		public override void AlterSpellDamageFrom( Mobile from, ref int damage )
+		{
+			damage = 0;
 		}
 
 		public ShadowIronElemental( Serial serial ) : base( serial )

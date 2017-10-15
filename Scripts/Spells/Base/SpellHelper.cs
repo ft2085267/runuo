@@ -73,10 +73,15 @@ namespace Server.Spells
 
 		public static bool CheckMulti( Point3D p, Map map )
 		{
-			return CheckMulti( p, map, true );
+			return CheckMulti( p, map, true, 0);
 		}
-
-		public static bool CheckMulti( Point3D p, Map map, bool houses )
+		
+		public static bool CheckMulti(Point3D p, Map map, bool houses)
+		{
+			return CheckMulti(p, map, houses, 0);
+		}
+		
+		public static bool CheckMulti( Point3D p, Map map, bool houses, int housingrange )
 		{
 			if( map == null || map == Map.Internal )
 				return false;
@@ -89,10 +94,12 @@ namespace Server.Spells
 
 				if( multi is BaseHouse )
 				{
-					if( houses && ((BaseHouse)multi).IsInside( p, 16 ) )
+					BaseHouse bh = (BaseHouse)multi;
+
+					if( ( houses && bh.IsInside( p, 16 ) ) || ( housingrange > 0 && bh.InRange( p, housingrange ) ) )
 						return true;
 				}
-				else if( multi.Contains( p ) )
+				else if( multi.Contains( p ))
 				{
 					return true;
 				}
@@ -133,7 +140,7 @@ namespace Server.Spells
 			{
 				AggressorInfo info = m.Aggressed[i];
 
-				if( info.Defender.Player && (DateTime.Now - info.LastCombatTime) < CombatHeatDelay )
+				if( info.Defender.Player && (DateTime.UtcNow - info.LastCombatTime) < CombatHeatDelay )
 					return true;
 			}
 
@@ -143,7 +150,7 @@ namespace Server.Spells
 				{
 					AggressorInfo info = m.Aggressors[i];
 
-					if( info.Attacker.Player && (DateTime.Now - info.LastCombatTime) < CombatHeatDelay )
+					if( info.Attacker.Player && (DateTime.UtcNow - info.LastCombatTime) < CombatHeatDelay )
 						return true;
 				}
 			}
@@ -169,7 +176,7 @@ namespace Server.Spells
 
 			return false;
 		}
-		
+
 		public static bool CanRevealCaster( Mobile m )
 		{
 			if ( m is BaseCreature )
@@ -195,7 +202,7 @@ namespace Server.Spells
 				int z = t.Z;
 
 				if( (t.Flags & TileFlag.Surface) == 0 )
-					z -= TileData.ItemTable[t.ItemID & 0x3FFF].CalcHeight;
+					z -= TileData.ItemTable[t.ItemID & TileData.MaxItemValue].CalcHeight;
 
 				p = new Point3D( t.X, t.Y, z );
 			}
@@ -355,6 +362,33 @@ namespace Server.Spells
 
 			if( to.Hidden && to.AccessLevel > from.AccessLevel )
 				return false;
+
+			#region Dueling
+			PlayerMobile pmFrom = from as PlayerMobile;
+			PlayerMobile pmTarg = to as PlayerMobile;
+
+			if ( pmFrom == null && from is BaseCreature )
+			{
+				BaseCreature bcFrom = (BaseCreature) from;
+
+				if ( bcFrom.Summoned )
+					pmFrom = bcFrom.SummonMaster as PlayerMobile;
+			}
+
+			if ( pmTarg == null && to is BaseCreature )
+			{
+				BaseCreature bcTarg = (BaseCreature) to;
+
+				if ( bcTarg.Summoned )
+					pmTarg = bcTarg.SummonMaster as PlayerMobile;
+			}
+
+			if ( pmFrom != null && pmTarg != null )
+			{
+				if ( pmFrom.DuelContext != null && pmFrom.DuelContext == pmTarg.DuelContext && pmFrom.DuelContext.Started && pmFrom.DuelPlayer != null && pmTarg.DuelPlayer != null )
+					return ( pmFrom.DuelPlayer.Participant != pmTarg.DuelPlayer.Participant );
+			}
+			#endregion
 
 			Guild fromGuild = GetGuildFor( from );
 			Guild toGuild = GetGuildFor( to );
@@ -534,6 +568,7 @@ namespace Server.Spells
 		private static TravelValidator[] m_Validators = new TravelValidator[]
 			{
 				new TravelValidator( IsFeluccaT2A ),
+				new TravelValidator( IsKhaldun ),
 				new TravelValidator( IsIlshenar ),
 				new TravelValidator( IsTrammelWind ),
 				new TravelValidator( IsFeluccaWind ),
@@ -543,33 +578,27 @@ namespace Server.Spells
 				new TravelValidator( IsCrystalCave ),
 				new TravelValidator( IsDoomGauntlet ),
 				new TravelValidator( IsDoomFerry ),
+				new TravelValidator( IsSafeZone ),
 				new TravelValidator( IsFactionStronghold ),
 				new TravelValidator( IsChampionSpawn ),
 				new TravelValidator( IsTokunoDungeon ),
 				new TravelValidator( IsLampRoom ),
 				new TravelValidator( IsGuardianRoom ),
+				new TravelValidator( IsHeartwood ),
+				new TravelValidator( IsMLDungeon )
 			};
 
 		private static bool[,] m_Rules = new bool[,]
 			{
-						/*T2A(Fel)		Ilshenar		Wind(Tram),	Wind(Fel),	Dungeons(Fel),	Solen(Tram),	Solen(Fel), CrystalCave(Malas),	Gauntlet(Malas),	Gauntlet(Ferry),	Stronghold,		ChampionSpawn, Dungeons(Tokuno[Malas]), LampRoom(Doom),	GuardianRoom(Doom) */
-/* Recall From */		{ false,		true,			true,			false,		false,			true,			false,		false,				false,				false,				true,			true,			true,				false,				false },
-/* Recall To */			{ false,		false,			false,			false,		false,			false,			false,		false,				false,				false,				false,			false,			false,				false,				false },
-/* Gate From */			{ false,		false,			false,			false,		false,			false,			false,		false,				false,				false,				false,			false,			false,				false,				false },
-/* Gate To */			{ false,		false,			false,			false,		false,			false,			false,		false,				false,				false,				false,			false,			false,				false,				false },
-/* Mark In */			{ false,		false,			false,			false,		false,			false,			false,		false,				false,				false,				false,			false,			false,				false,				false },
-/* Tele From */			{ true,			true,			true,			true,		true,			true,			true,		false,				true,				true,				false,			true,			true,				true,				true },
-/* Tele To */			{ true,			true,			true,			true,		true,			true,			true,		false,				true,				false,				false, 			true,			true,				true,				true },
+					/*T2A(Fel),	Khaldun,	Ilshenar,	Wind(Tram),	Wind(Fel),	Dungeons(Fel),	Solen(Tram),	Solen(Fel),	CrystalCave(Malas),	Gauntlet(Malas),	Gauntlet(Ferry),	SafeZone,	Stronghold,	ChampionSpawn,	Dungeons(Tokuno[Malas]),	LampRoom(Doom),	GuardianRoom(Doom),	Heartwood,	MLDungeons */
+/* Recall From */	{ false,	false,		true,		true,		false,		false,			true,			false,		false,				false,				false,				true,		true,		false,			true,						false,			false,				false,		false },
+/* Recall To */		{ false,	false,		false,		false,		false,		false,			false,			false,		false,				false,				false,				false,		false,		false,			false,						false,			false,				false,		false },
+/* Gate From */		{ false,	false,		false,		false,		false,		false,			false,			false,		false,				false,				false,				false,		false,		false,			false,						false,			false,				false,		false },
+/* Gate To */		{ false,	false,		false,		false,		false,		false,			false,			false,		false,				false,				false,				false,		false,		false,			false,						false,			false,				false,		false },
+/* Mark In */		{ false,	false,		false,		false,		false,		false,			false,			false,		false,				false,				false,				false,		false,		false,			false,						false,			false,				false,		false },
+/* Tele From */		{ true,		true,		true,		true,		true,		true,			true,			true,		false,				true,				true,				true,		false,		true,			true,						true,			true,				false,		true },
+/* Tele To */		{ true,		true,		true,		true,		true,		true,			true,			true,		false,				true,				false,				false,		false, 		true,			true,						true,			true,				false,		false },
 			};
-
-		public static bool CheckTravel( Mobile caster, TravelCheckType type )
-		{
-			if( CheckTravel( caster, caster.Map, caster.Location, type ) )
-				return true;
-
-			SendInvalidMessage( caster, type );
-			return false;
-		}
 
 		public static void SendInvalidMessage( Mobile caster, TravelCheckType type )
 		{
@@ -579,6 +608,11 @@ namespace Server.Spells
 				caster.SendLocalizedMessage( 501035 ); // You cannot teleport from here to the destination.
 			else
 				caster.SendLocalizedMessage( 501802 ); // Thy spell doth not appear to work...
+		}
+
+		public static bool CheckTravel( Mobile caster, TravelCheckType type )
+		{
+			return CheckTravel( caster, caster.Map, caster.Location, type );
 		}
 
 		public static bool CheckTravel( Map map, Point3D loc, TravelCheckType type )
@@ -601,8 +635,17 @@ namespace Server.Spells
 
 			if( caster != null && caster.AccessLevel == AccessLevel.Player && caster.Region.IsPartOf( typeof( Regions.Jail ) ) )
 			{
-				caster.SendLocalizedMessage( 1042632 ); // You'll need a better jailbreak plan then that!
+				caster.SendLocalizedMessage( 1114345 ); // You'll need a better jailbreak plan than that!
 				return false;
+			}
+
+			// Always allow monsters to teleport
+			if ( caster is BaseCreature && ( type == TravelCheckType.TeleportTo || type == TravelCheckType.TeleportFrom ) )
+			{
+				BaseCreature bc = (BaseCreature)caster;
+
+				if ( !bc.Controlled && !bc.Summoned )
+					return true;
 			}
 
 			m_TravelCaster = caster;
@@ -679,19 +722,42 @@ namespace Server.Spells
 			return (region.IsPartOf( typeof( DungeonRegion ) ) && region.Map == Map.Felucca);
 		}
 
+		public static bool IsKhaldun( Map map, Point3D loc )
+		{
+			return ( Region.Find( loc, map ).Name == "Khaldun" );
+		}
+
 		public static bool IsCrystalCave( Map map, Point3D loc )
 		{
-			if( map != Map.Malas )
+			if( map != Map.Malas || loc.Z >= -80 )
 				return false;
 
-			int x = loc.X, y = loc.Y, z = loc.Z;
+			int x = loc.X, y = loc.Y;
 
-			bool r1 = (x >= 1182 && y >= 437 && x < 1211 && y < 470);
-			bool r2 = (x >= 1156 && y >= 470 && x < 1211 && y < 503);
-			bool r3 = (x >= 1176 && y >= 503 && x < 1208 && y < 509);
-			bool r4 = (x >= 1188 && y >= 509 && x < 1201 && y < 513);
+			return ( x >= 1182 && y >= 437 && x < 1211 && y < 470 )
+				|| ( x >= 1156 && y >= 470 && x < 1211 && y < 503 )
+				|| ( x >= 1176 && y >= 503 && x < 1208 && y < 509 )
+				|| ( x >= 1188 && y >= 509 && x < 1201 && y < 513 );
+		}
 
-			return (z < -80 && (r1 || r2 || r3 || r4));
+		public static bool IsSafeZone( Map map, Point3D loc )
+		{
+			#region Duels
+			if ( Region.Find( loc, map ).IsPartOf( typeof( Engines.ConPVP.SafeZone ) ) )
+			{
+				if ( m_TravelType == TravelCheckType.TeleportTo || m_TravelType == TravelCheckType.TeleportFrom )
+				{
+					PlayerMobile pm = m_TravelCaster as PlayerMobile;
+
+					if ( pm != null && pm.DuelPlayer != null && !pm.DuelPlayer.Eliminated )
+						return true;
+				}
+
+				return true;
+			}
+			#endregion
+
+			return false;
 		}
 
 		public static bool IsFactionStronghold( Map map, Point3D loc )
@@ -771,6 +837,18 @@ namespace Server.Spells
 			return ( x >= 356 && y >= 5 && x < 375 && y < 25 );
 		}
 
+		public static bool IsHeartwood( Map map, Point3D loc )
+		{
+			int x = loc.X, y = loc.Y;
+
+			return (map == Map.Trammel || map == Map.Felucca) && (x >= 6911 && y >= 254 && x < 7167 && y < 511);
+		}
+
+		public static bool IsMLDungeon( Map map, Point3D loc )
+		{
+			return MondainsLegacy.IsMLRegion( Region.Find( loc, map ) );
+		}
+
 		public static bool IsInvalid( Map map, Point3D loc )
 		{
 			if( map == null || map == Map.Internal )
@@ -797,7 +875,19 @@ namespace Server.Spells
 			if( map == null )
 				return false;
 
-			GuardedRegion reg = (GuardedRegion)Region.Find( loc, map ).GetRegion( typeof( GuardedRegion ) );
+			#region Dueling
+			Engines.ConPVP.SafeZone sz = (Engines.ConPVP.SafeZone) Region.Find( loc, map ).GetRegion( typeof( Engines.ConPVP.SafeZone ) );
+
+			if ( sz != null )
+			{
+				PlayerMobile pm = (PlayerMobile) caster;
+
+				if ( pm == null || pm.DuelContext == null || !pm.DuelContext.Started || pm.DuelPlayer == null || pm.DuelPlayer.Eliminated )
+					return true;
+			}
+			#endregion
+
+			GuardedRegion reg = (GuardedRegion) Region.Find( loc, map ).GetRegion( typeof( GuardedRegion ) );
 
 			return (reg != null && !reg.IsDisabled());
 		}
@@ -911,7 +1001,12 @@ namespace Server.Spells
 			}
 
 			if( target is BaseCreature && from != null && delay == TimeSpan.Zero )
-				((BaseCreature)target).OnDamagedBySpell( from );
+			{
+				BaseCreature c = (BaseCreature) target;
+
+				c.OnHarmfulSpell( from );
+				c.OnDamagedBySpell( from );
+			}
 		}
 
 		public static void Damage( Spell spell, Mobile target, double damage, int phys, int fire, int cold, int pois, int nrgy )
@@ -958,7 +1053,11 @@ namespace Server.Spells
 				WeightOverloading.DFA = dfa;
 
 				int damageGiven = AOS.Damage( target, from, iDamage, phys, fire, cold, pois, nrgy );
-				DoLeech( damageGiven, from, target );
+
+				if ( from != null ) // sanity check
+				{
+					DoLeech( damageGiven, from, target );
+				}
 
 				WeightOverloading.DFA = DFAlgorithm.Standard;
 			}
@@ -968,23 +1067,34 @@ namespace Server.Spells
 			}
 
 			if( target is BaseCreature && from != null && delay == TimeSpan.Zero )
-				((BaseCreature)target).OnDamagedBySpell( from );
+			{
+				BaseCreature c = (BaseCreature) target;
+
+				c.OnHarmfulSpell( from );
+				c.OnDamagedBySpell( from );
+			}
 		}
 
 		public static void DoLeech( int damageGiven, Mobile from, Mobile target )
 		{
 			TransformContext context = TransformationSpellHelper.GetContext( from );
-			if ( context != null && context.Type == typeof( WraithFormSpell ) )
+
+			if ( context != null ) /* cleanup */
 			{
-				int wraithLeech = ( 5 + (int)( ( 15 * from.Skills.SpiritSpeak.Value ) / 100 ) ); // Wraith form gives 5-20% mana leech
-				int manaLeech = AOS.Scale( damageGiven, wraithLeech );
-				if ( manaLeech != 0 )
+				if ( context.Type == typeof( WraithFormSpell ) )
 				{
-					// Mana leeched by the Wraith Form spell is actually stolen, not just leeched.
-					target.Mana -= manaLeech;
-					from.Mana += manaLeech;
+					int wraithLeech = ( 5 + (int)( ( 15 * from.Skills.SpiritSpeak.Value ) / 100 ) ); // Wraith form gives 5-20% mana leech
+					int manaLeech = AOS.Scale( damageGiven, wraithLeech );
+					if ( manaLeech != 0 )
+					{
+						from.Mana += manaLeech;
+						from.PlaySound( 0x44D );
+					}
+				}
+				else if ( context.Type == typeof( VampiricEmbraceSpell ) )
+				{
+					from.Hits += AOS.Scale( damageGiven, 20 );
 					from.PlaySound( 0x44D );
-					//from.SendMessage(String.Format("You Leeched {0} Mana", manaLeech));
 				}
 			}
 		}
@@ -1071,12 +1181,21 @@ namespace Server.Spells
 				WeightOverloading.DFA = m_DFA;
 
 				int damageGiven = AOS.Damage( m_Target, m_From, m_Damage, m_Phys, m_Fire, m_Cold, m_Pois, m_Nrgy );
-				DoLeech( damageGiven, m_From, m_Target );
+
+				if ( m_From != null ) // sanity check
+				{
+					DoLeech( damageGiven, m_From, m_Target );
+				}
 
 				WeightOverloading.DFA = DFAlgorithm.Standard;
 
 				if( m_Target is BaseCreature && m_From != null )
-					((BaseCreature)m_Target).OnDamagedBySpell( m_From );
+				{
+					BaseCreature c = (BaseCreature) m_Target;
+
+					c.OnHarmfulSpell( m_From );
+					c.OnDamagedBySpell( m_From );
+				}
 
 				if( m_Spell != null )
 					m_Spell.RemoveDelayedDamageContext( m_Target );
@@ -1182,6 +1301,11 @@ namespace Server.Spells
 			else if( !caster.CanBeginAction( typeof( PolymorphSpell ) ) )
 			{
 				caster.SendLocalizedMessage( 1061628 ); // You can't do that while polymorphed.
+			}
+			else if ( DisguiseTimers.IsDisguised( caster ) )
+			{
+				caster.SendLocalizedMessage( 1061631 ); // You can't do that while disguised.
+				return false;
 			}
 			else if( AnimalForm.UnderTransformation( caster ) )
 			{

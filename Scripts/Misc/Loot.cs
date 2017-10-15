@@ -9,6 +9,49 @@ namespace Server
 	public class Loot
 	{
 		#region List definitions
+
+		#region Mondain's Legacy
+		private static Type[] m_MLWeaponTypes = new Type[]
+			{
+				typeof( AssassinSpike ),		typeof( DiamondMace ),			typeof( ElvenMachete ),
+				typeof( ElvenSpellblade ),		typeof( Leafblade ),			typeof( OrnateAxe ),
+				typeof( RadiantScimitar ),		typeof( RuneBlade ),			typeof( WarCleaver ),
+				typeof( WildStaff )
+			};
+
+		public static Type[] MLWeaponTypes{ get{ return m_MLWeaponTypes; } }
+		
+		private static Type[] m_MLRangedWeaponTypes = new Type[]
+			{
+				typeof( ElvenCompositeLongbow ),	typeof( MagicalShortbow )
+			};
+
+		public static Type[] MLRangedWeaponTypes{ get{ return m_MLRangedWeaponTypes; } }
+		
+		private static Type[] m_MLArmorTypes = new Type[]
+			{
+				typeof( Circlet ),				typeof( GemmedCirclet ),		typeof( LeafTonlet ),
+				typeof( RavenHelm ),			typeof( RoyalCirclet ),			typeof( VultureHelm ),
+				typeof( WingedHelm ),			typeof( LeafArms ),				typeof( LeafChest ),
+				typeof( LeafGloves ),			typeof( LeafGorget ),			typeof( LeafLegs ),
+				typeof( WoodlandArms ),			typeof( WoodlandChest ),		typeof( WoodlandGloves ),
+				typeof( WoodlandGorget ),		typeof( WoodlandLegs ),			typeof( HideChest ),
+				typeof( HideGloves ),			typeof( HideGorget ),			typeof( HidePants ),
+				typeof( HidePauldrons )
+			};
+
+		public static Type[] MLArmorTypes{ get{ return m_MLArmorTypes; } }
+
+		private static Type[] m_MLClothingTypes = new Type[]
+			{
+				typeof( MaleElvenRobe ),		typeof( FemaleElvenRobe ),		typeof( ElvenPants ),
+				typeof( ElvenShirt ),			typeof( ElvenDarkShirt ),		typeof( ElvenBoots ),
+				typeof( VultureHelm ),			typeof( WoodlandBelt )
+			};
+
+		public static Type[] MLClothingTypes{ get{ return m_MLClothingTypes; } }
+		#endregion
+
 		private static Type[] m_SEWeaponTypes = new Type[]
 			{
 				typeof( Bokuto ),				typeof( Daisho ),				typeof( Kama ),
@@ -187,8 +230,8 @@ namespace Server
 
 		private static Type[] m_RegularScrollTypes = new Type[]
 			{
-				typeof( ClumsyScroll ),			typeof( CreateFoodScroll ),		typeof( FeeblemindScroll ),		typeof( HealScroll ),
-				typeof( MagicArrowScroll ),		typeof( NightSightScroll ),		typeof( ReactiveArmorScroll ),	typeof( WeakenScroll ),
+				typeof( ReactiveArmorScroll ),	typeof( ClumsyScroll ),			typeof( CreateFoodScroll ),		typeof( FeeblemindScroll ),
+				typeof( HealScroll ),			typeof( MagicArrowScroll ),		typeof( NightSightScroll ),		typeof( WeakenScroll ),
 				typeof( AgilityScroll ),		typeof( CunningScroll ),		typeof( CureScroll ),			typeof( HarmScroll ),
 				typeof( MagicTrapScroll ),		typeof( MagicUnTrapScroll ),	typeof( ProtectionScroll ),		typeof( StrengthScroll ),
 				typeof( BlessScroll ),			typeof( FireballScroll ),		typeof( MagicLockScroll ),		typeof( PoisonScroll ),
@@ -224,10 +267,23 @@ namespace Server
 
 		private static Type[] m_PaladinScrollTypes = new Type[0];
 
+		#region Mondain's Legacy
+		private static Type[] m_ArcanistScrollTypes = new Type[]
+		{
+			typeof( ArcaneCircleScroll ),	typeof( GiftOfRenewalScroll ),	typeof( ImmolatingWeaponScroll ),	typeof( AttuneWeaponScroll ),
+			typeof( ThunderstormScroll ),	typeof( NatureFuryScroll ),		/*typeof( SummonFeyScroll ),			typeof( SummonFiendScroll ),*/
+			typeof( ReaperFormScroll ),		typeof( WildfireScroll ),		typeof( EssenceOfWindScroll ),		typeof( DryadAllureScroll ),
+			typeof( EtherealVoyageScroll ),	typeof( WordOfDeathScroll ),	typeof( GiftOfLifeScroll ),			typeof( ArcaneEmpowermentScroll )
+		};
+		#endregion
+
 		public static Type[] RegularScrollTypes{ get{ return m_RegularScrollTypes; } }
 		public static Type[] NecromancyScrollTypes{ get{ return m_NecromancyScrollTypes; } }
 		public static Type[] SENecromancyScrollTypes{ get{ return m_SENecromancyScrollTypes; } }
 		public static Type[] PaladinScrollTypes{ get{ return m_PaladinScrollTypes; } }
+		#region Mondain's Legacy
+		public static Type[] ArcanistScrollTypes{ get{ return m_ArcanistScrollTypes; } }
+		#endregion
 
 		private static Type[] m_GrimmochJournalTypes = new Type[]
 		{
@@ -258,15 +314,25 @@ namespace Server
 		public static Type[] TavarasJournalTypes{ get{ return m_TavarasJournalTypes; } }
 
 
+		private static Type[] m_NewWandTypes = new Type[]
+			{
+				typeof( FireballWand ),		typeof( LightningWand ),		typeof( MagicArrowWand ),
+				typeof( GreaterHealWand ),	typeof( HarmWand ),				typeof( HealWand )
+			};
+		public static Type[] NewWandTypes{ get{ return m_NewWandTypes; } }
+
 		private static Type[] m_WandTypes = new Type[]
 			{
-				typeof( ClumsyWand ),               typeof( FeebleWand ),           typeof( FireballWand ),
-				typeof( GreaterHealWand ),          typeof( HarmWand ),             typeof( HealWand ),
-				typeof( IDWand ),                   typeof( LightningWand ),        typeof( MagicArrowWand ),
-				typeof( ManaDrainWand ),            typeof( WeaknessWand )          
-                
+				typeof( ClumsyWand ),		typeof( FeebleWand ),
+				typeof( ManaDrainWand ),	typeof( WeaknessWand )
 			};
 		public static Type[] WandTypes{ get{ return m_WandTypes; } }
+		
+		private static Type[] m_OldWandTypes = new Type[]
+			{
+				typeof( IDWand )
+			};
+		public static Type[] OldWandTypes{ get{ return m_OldWandTypes; } }
 
 		private static Type[] m_SEClothingTypes = new Type[]
 			{
@@ -349,16 +415,26 @@ namespace Server
 
 		public static BaseWand RandomWand()
 		{
-			return Construct( m_WandTypes ) as BaseWand;
+			if ( Core.ML )
+				return Construct( m_NewWandTypes ) as BaseWand;
+			else if ( Core.AOS )
+				return Construct( m_WandTypes, m_NewWandTypes ) as BaseWand;
+			else
+				return Construct( m_OldWandTypes, m_WandTypes, m_NewWandTypes ) as BaseWand;
 		}
 
 		public static BaseClothing RandomClothing()
 		{
-			return RandomClothing( false );
+			return RandomClothing( false, false );
 		}
 
-		public static BaseClothing RandomClothing( bool inTokuno )
+		public static BaseClothing RandomClothing( bool inTokuno, bool isMondain )
 		{
+			#region Mondain's Legacy
+			if ( Core.ML && isMondain )
+				return Construct( m_MLClothingTypes, m_AosClothingTypes, m_ClothingTypes ) as BaseClothing;
+			#endregion
+
 			if ( Core.SE && inTokuno )
 				return Construct( m_SEClothingTypes, m_AosClothingTypes, m_ClothingTypes ) as BaseClothing;
 
@@ -370,11 +446,16 @@ namespace Server
 
 		public static BaseWeapon RandomRangedWeapon()
 		{
-			return RandomRangedWeapon( false );
+			return RandomRangedWeapon( false, false );
 		}
 
-		public static BaseWeapon RandomRangedWeapon( bool inTokuno )
+		public static BaseWeapon RandomRangedWeapon( bool inTokuno, bool isMondain )
 		{
+			#region Mondain's Legacy
+			if ( Core.ML && isMondain )
+				return Construct( m_MLRangedWeaponTypes, m_AosRangedWeaponTypes, m_RangedWeaponTypes ) as BaseWeapon;
+			#endregion
+
 			if ( Core.SE && inTokuno )
 				return Construct( m_SERangedWeaponTypes, m_AosRangedWeaponTypes, m_RangedWeaponTypes ) as BaseWeapon;
 
@@ -386,11 +467,16 @@ namespace Server
 
 		public static BaseWeapon RandomWeapon()
 		{
-			return RandomWeapon( false );
+			return RandomWeapon( false, false );
 		}
 
-		public static BaseWeapon RandomWeapon( bool inTokuno )
+		public static BaseWeapon RandomWeapon( bool inTokuno, bool isMondain )
 		{
+			#region Mondain's Legacy
+			if ( Core.ML && isMondain )
+				return Construct( m_MLWeaponTypes, m_AosWeaponTypes, m_WeaponTypes ) as BaseWeapon;
+			#endregion
+
 			if ( Core.SE && inTokuno )
 				return Construct( m_SEWeaponTypes, m_AosWeaponTypes, m_WeaponTypes ) as BaseWeapon;
 
@@ -402,11 +488,16 @@ namespace Server
 
 		public static Item RandomWeaponOrJewelry()
 		{
-			return RandomWeaponOrJewelry( false );
+			return RandomWeaponOrJewelry( false, false );
 		}
 
-		public static Item RandomWeaponOrJewelry( bool inTokuno )
+		public static Item RandomWeaponOrJewelry( bool inTokuno, bool isMondain )
 		{
+			#region Mondain's Legacy
+			if ( Core.ML && isMondain )
+				return Construct( m_MLWeaponTypes, m_AosWeaponTypes, m_WeaponTypes, m_JewelryTypes );
+			#endregion
+
 			if ( Core.SE && inTokuno )
 				return Construct( m_SEWeaponTypes, m_AosWeaponTypes, m_WeaponTypes, m_JewelryTypes );
 
@@ -423,11 +514,16 @@ namespace Server
 
 		public static BaseArmor RandomArmor()
 		{
-			return RandomArmor( false );
+			return RandomArmor( false, false );
 		}
 
-		public static BaseArmor RandomArmor( bool inTokuno )
+		public static BaseArmor RandomArmor( bool inTokuno, bool isMondain )
 		{
+			#region Mondain's Legacy
+			if ( Core.ML && isMondain )
+				return Construct( m_MLArmorTypes, m_ArmorTypes ) as BaseArmor;
+			#endregion
+
 			if ( Core.SE && inTokuno )
 				return Construct( m_SEArmorTypes, m_ArmorTypes ) as BaseArmor;
 
@@ -452,11 +548,16 @@ namespace Server
 
 		public static Item RandomArmorOrHat()
 		{
-			return RandomArmorOrHat( false );
+			return RandomArmorOrHat( false, false );
 		}
 
-		public static Item RandomArmorOrHat( bool inTokuno )
+		public static Item RandomArmorOrHat( bool inTokuno, bool isMondain )
 		{
+			#region Mondain's Legacy
+			if ( Core.ML && isMondain )
+				return Construct( m_MLArmorTypes, m_ArmorTypes, m_AosHatTypes, m_HatTypes );
+			#endregion
+
 			if ( Core.SE && inTokuno )
 				return Construct( m_SEArmorTypes, m_ArmorTypes, m_SEHatTypes, m_AosHatTypes, m_HatTypes );
 
@@ -476,11 +577,16 @@ namespace Server
 
 		public static BaseArmor RandomArmorOrShield()
 		{
-			return RandomArmorOrShield( false );
+			return RandomArmorOrShield( false, false );
 		}
 
-		public static BaseArmor RandomArmorOrShield( bool inTokuno )
+		public static BaseArmor RandomArmorOrShield( bool inTokuno, bool isMondain )
 		{
+			#region Mondain's Legacy
+			if ( Core.ML && isMondain )
+				return Construct( m_MLArmorTypes, m_ArmorTypes, m_AosShieldTypes, m_ShieldTypes ) as BaseArmor;
+			#endregion
+
 			if ( Core.SE && inTokuno )
 				return Construct( m_SEArmorTypes, m_ArmorTypes, m_AosShieldTypes, m_ShieldTypes ) as BaseArmor;
 
@@ -492,11 +598,16 @@ namespace Server
 
 		public static Item RandomArmorOrShieldOrJewelry()
 		{
-			return RandomArmorOrShieldOrJewelry( false );
+			return RandomArmorOrShieldOrJewelry( false, false );
 		}
 
-		public static Item RandomArmorOrShieldOrJewelry( bool inTokuno )
+		public static Item RandomArmorOrShieldOrJewelry( bool inTokuno, bool isMondain )
 		{
+			#region Mondain's Legacy
+			if ( Core.ML && isMondain )
+				return Construct( m_MLArmorTypes, m_ArmorTypes, m_AosHatTypes, m_HatTypes, m_AosShieldTypes, m_ShieldTypes, m_JewelryTypes );
+			#endregion
+
 			if ( Core.SE && inTokuno )
 				return Construct( m_SEArmorTypes, m_ArmorTypes, m_SEHatTypes, m_AosHatTypes, m_HatTypes, m_AosShieldTypes, m_ShieldTypes, m_JewelryTypes );
 
@@ -508,11 +619,16 @@ namespace Server
 
 		public static Item RandomArmorOrShieldOrWeapon()
 		{
-			return RandomArmorOrShieldOrWeapon( false );
+			return RandomArmorOrShieldOrWeapon( false, false );
 		}
 
-		public static Item RandomArmorOrShieldOrWeapon( bool inTokuno )
+		public static Item RandomArmorOrShieldOrWeapon( bool inTokuno, bool isMondain )
 		{
+			#region Mondain's Legacy
+			if ( Core.ML && isMondain )
+				return Construct( m_MLWeaponTypes, m_AosWeaponTypes, m_WeaponTypes, m_MLRangedWeaponTypes, m_AosRangedWeaponTypes, m_RangedWeaponTypes, m_MLArmorTypes, m_ArmorTypes, m_AosHatTypes, m_HatTypes, m_AosShieldTypes, m_ShieldTypes );
+			#endregion
+
 			if ( Core.SE && inTokuno )
 				return Construct( m_SEWeaponTypes, m_AosWeaponTypes, m_WeaponTypes, m_SERangedWeaponTypes, m_AosRangedWeaponTypes, m_RangedWeaponTypes, m_SEArmorTypes, m_ArmorTypes, m_SEHatTypes, m_AosHatTypes, m_HatTypes, m_AosShieldTypes, m_ShieldTypes );
 
@@ -524,11 +640,16 @@ namespace Server
 
 		public static Item RandomArmorOrShieldOrWeaponOrJewelry()
 		{
-			return RandomArmorOrShieldOrWeaponOrJewelry( false );
+			return RandomArmorOrShieldOrWeaponOrJewelry( false, false );
 		}
 
-		public static Item RandomArmorOrShieldOrWeaponOrJewelry( bool inTokuno )
+		public static Item RandomArmorOrShieldOrWeaponOrJewelry( bool inTokuno, bool isMondain )
 		{
+			#region Mondain's Legacy
+			if ( Core.ML && isMondain )
+				return Construct( m_MLWeaponTypes, m_AosWeaponTypes, m_WeaponTypes, m_MLRangedWeaponTypes, m_AosRangedWeaponTypes, m_RangedWeaponTypes, m_MLArmorTypes, m_ArmorTypes, m_AosHatTypes, m_HatTypes, m_AosShieldTypes, m_ShieldTypes, m_JewelryTypes );
+			#endregion
+
 			if ( Core.SE && inTokuno )
 				return Construct( m_SEWeaponTypes, m_AosWeaponTypes, m_WeaponTypes, m_SERangedWeaponTypes, m_AosRangedWeaponTypes, m_RangedWeaponTypes, m_SEArmorTypes, m_ArmorTypes, m_SEHatTypes, m_AosHatTypes, m_HatTypes, m_AosShieldTypes, m_ShieldTypes, m_JewelryTypes );
 
@@ -537,6 +658,13 @@ namespace Server
 
 			return Construct( m_WeaponTypes, m_RangedWeaponTypes, m_ArmorTypes, m_HatTypes, m_ShieldTypes, m_JewelryTypes );
 		}
+		
+		#region Chest of Heirlooms
+		public static Item ChestOfHeirloomsContains()
+		{
+			return Construct( m_SEArmorTypes, m_SEHatTypes, m_SEWeaponTypes, m_SERangedWeaponTypes, m_JewelryTypes );
+		}
+		#endregion
 
 		public static Item RandomGem()
 		{
@@ -589,6 +717,7 @@ namespace Server
 				case SpellbookType.Regular: types = m_RegularScrollTypes; break;
 				case SpellbookType.Necromancer: types = (Core.SE ? m_SENecromancyScrollTypes : m_NecromancyScrollTypes ); break;
 				case SpellbookType.Paladin: types = m_PaladinScrollTypes; break;
+				case SpellbookType.Arcanist: types = m_ArcanistScrollTypes; break;
 			}
 
 			return Construct( types, Utility.RandomMinMax( minIndex, maxIndex ) ) as SpellScroll;
@@ -612,6 +741,44 @@ namespace Server
 		public static BaseBook RandomLibraryBook()
 		{
 			return Construct( m_LibraryBookTypes ) as BaseBook;
+		}
+
+		public static BaseTalisman RandomTalisman()
+		{
+			BaseTalisman talisman = new BaseTalisman( BaseTalisman.GetRandomItemID() );
+
+			talisman.Summoner = BaseTalisman.GetRandomSummoner();
+
+			if ( talisman.Summoner.IsEmpty )
+			{
+				talisman.Removal = BaseTalisman.GetRandomRemoval();
+
+				if ( talisman.Removal != TalismanRemoval.None )
+				{
+					talisman.MaxCharges = BaseTalisman.GetRandomCharges();
+					talisman.MaxChargeTime = 1200;
+				}
+			}
+			else
+			{
+				talisman.MaxCharges = Utility.RandomMinMax( 10, 50 );
+
+				if ( talisman.Summoner.IsItem )
+					talisman.MaxChargeTime = 60;
+				else
+					talisman.MaxChargeTime = 1800;
+			}
+
+			talisman.Blessed = BaseTalisman.GetRandomBlessed();
+			talisman.Slayer = BaseTalisman.GetRandomSlayer();
+			talisman.Protection = BaseTalisman.GetRandomProtection();
+			talisman.Killer = BaseTalisman.GetRandomKiller();
+			talisman.Skill = BaseTalisman.GetRandomSkill();
+			talisman.ExceptionalBonus = BaseTalisman.GetRandomExceptional();
+			talisman.SuccessBonus = BaseTalisman.GetRandomSuccessful();
+			talisman.Charges = talisman.MaxCharges;
+
+			return talisman;
 		}
 		#endregion
 

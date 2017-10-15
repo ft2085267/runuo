@@ -1,6 +1,7 @@
 using System;
-using System.Reflection;
 using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
 using Server;
 using Server.Commands.Generic;
 using Server.Network;
@@ -11,13 +12,26 @@ using CPA = Server.CommandPropertyAttribute;
 
 namespace Server.Gumps
 {
+	public class StackEntry
+	{
+		public object m_Object;
+		public PropertyInfo m_Property;
+
+		public StackEntry(object obj, PropertyInfo prop)
+		{
+			m_Object = obj;
+			m_Property = prop;
+		}
+	}
+
 	public class PropertiesGump : Gump
 	{
 		private ArrayList m_List;
 		private int m_Page;
 		private Mobile m_Mobile;
 		private object m_Object;
-		private Stack m_Stack;
+		private Type m_Type;
+		private Stack<StackEntry> m_Stack;
 
 		public static readonly bool OldStyle = PropsConfig.OldStyle;
 
@@ -54,6 +68,7 @@ namespace Server.Gumps
 		public static readonly int BorderSize = PropsConfig.BorderSize;
 
 		private static bool PrevLabel = OldStyle, NextLabel = OldStyle;
+		private static bool TypeLabel = !OldStyle;
 
 		private static readonly int PrevLabelOffsetX = PrevWidth + 1;
 		private static readonly int PrevLabelOffsetY = 0;
@@ -78,22 +93,24 @@ namespace Server.Gumps
 		{
 			m_Mobile = mobile;
 			m_Object = o;
+			m_Type = o.GetType();
 			m_List = BuildList();
 
 			Initialize( 0 );
 		}
 
-		public PropertiesGump( Mobile mobile, object o, Stack stack, StackEntry parent ) : base( GumpOffsetX, GumpOffsetY )
+		public PropertiesGump( Mobile mobile, object o, Stack<StackEntry> stack, StackEntry parent ) : base( GumpOffsetX, GumpOffsetY )
 		{
 			m_Mobile = mobile;
 			m_Object = o;
+			m_Type = o.GetType();
 			m_Stack = stack;
 			m_List = BuildList();
 
 			if ( parent != null )
 			{
 				if ( m_Stack == null )
-					m_Stack = new Stack();
+					m_Stack = new Stack<StackEntry>();
 
 				m_Stack.Push( parent );
 			}
@@ -101,10 +118,14 @@ namespace Server.Gumps
 			Initialize( 0 );
 		}
 
-		public PropertiesGump( Mobile mobile, object o, Stack stack, ArrayList list, int page ) : base( GumpOffsetX, GumpOffsetY )
+		public PropertiesGump( Mobile mobile, object o, Stack<StackEntry> stack, ArrayList list, int page ) : base( GumpOffsetX, GumpOffsetY )
 		{
 			m_Mobile = mobile;
 			m_Object = o;
+
+			if ( o != null )
+				m_Type = o.GetType();
+
 			m_List = list;
 			m_Stack = stack;
 
@@ -155,7 +176,10 @@ namespace Server.Gumps
 			x += PrevWidth + OffsetSize;
 
 			if ( !OldStyle )
-				AddImageTiled( x - (OldStyle ? OffsetSize : 0), y, emptyWidth + (OldStyle ? OffsetSize * 2 : 0), EntryHeight, HeaderGumpID );
+				AddImageTiled( x, y, emptyWidth, EntryHeight, HeaderGumpID );
+
+			if ( TypeLabel && m_Type != null )
+				AddHtml( x, y, emptyWidth, EntryHeight, String.Format( "<BASEFONT COLOR=#FAFAFA><CENTER>{0}</CENTER></BASEFONT>", m_Type.Name ), false, false );
 
 			x += emptyWidth + OffsetSize;
 
@@ -220,18 +244,6 @@ namespace Server.Gumps
 		public static string[] m_PoisonNames = new string[]{ "None", "Lesser", "Regular", "Greater", "Deadly", "Lethal" };
 		public static object[] m_PoisonValues = new object[]{ null, Poison.Lesser, Poison.Regular, Poison.Greater, Poison.Deadly, Poison.Lethal };
 
-		public class StackEntry
-		{
-			public object m_Object;
-			public PropertyInfo m_Property;
-
-			public StackEntry( object obj, PropertyInfo prop )
-			{
-				m_Object = obj;
-				m_Property = prop;
-			}
-		}
-
 		public override void OnResponse( NetState state, RelayInfo info )
 		{
 			Mobile from = state.Mobile;
@@ -248,7 +260,7 @@ namespace Server.Gumps
 				{
 					if ( m_Stack != null && m_Stack.Count > 0 )
 					{
-						StackEntry entry = (StackEntry)m_Stack.Pop();
+						StackEntry entry = m_Stack.Pop();
 
 						from.SendGump( new PropertiesGump( from, entry.m_Object, m_Stack, null ) );
 					}
@@ -303,7 +315,7 @@ namespace Server.Gumps
 							from.SendGump( new SetListOptionGump( prop, from, m_Object, m_Stack, m_Page, m_List, Enum.GetNames( type ), GetObjects( Enum.GetValues( type ) ) ) );
 						else if ( IsType( type, typeofBool ) )
 							from.SendGump( new SetListOptionGump( prop, from, m_Object, m_Stack, m_Page, m_List, m_BoolNames, m_BoolValues ) );
-						else if ( IsType( type, typeofString ) || IsType( type, typeofReal ) || IsType( type, typeofNumeric ) )
+						else if ( IsType( type, typeofString ) || IsType( type, typeofReal ) || IsType( type, typeofNumeric ) || IsType( type, typeofText ) )
 							from.SendGump( new SetGump( prop, from, m_Object, m_Stack, m_Page, m_List ) );
 						else if ( IsType( type, typeofPoison ) )
 							from.SendGump( new SetListOptionGump( prop, from, m_Object, m_Stack, m_Page, m_List, m_PoisonNames, m_PoisonValues ) );
@@ -345,7 +357,7 @@ namespace Server.Gumps
 			return type.IsDefined( typeofCustomEnum, false );
 		}
 
-		public static void OnValueChanged( object obj, PropertyInfo prop, Stack stack )
+		public static void OnValueChanged( object obj, PropertyInfo prop, Stack<StackEntry> stack )
 		{
 			if ( stack == null || stack.Count == 0 )
 				return;
@@ -353,7 +365,7 @@ namespace Server.Gumps
 			if ( !prop.PropertyType.IsValueType )
 				return;
 
-			StackEntry peek = (StackEntry)stack.Peek();
+			StackEntry peek = stack.Peek();
 
 			if ( peek.m_Property.CanWrite )
 				peek.m_Property.SetValue( peek.m_Object, obj, null );
@@ -405,6 +417,7 @@ namespace Server.Gumps
 		private static Type typeofEnum = typeof( Enum );
 		private static Type typeofBool = typeof( Boolean );
 		private static Type typeofString = typeof( String );
+		private static Type typeofText = typeof( TextDefinition );
 		private static Type typeofPoison = typeof( Poison );
 		private static Type typeofMap = typeof( Map );
 		private static Type typeofSkills = typeof( Skills );
@@ -492,11 +505,15 @@ namespace Server.Gumps
 			}
 			else if ( o is Item )
 			{
-				return String.Format( "(I) 0x{0:X}", ((Item)o).Serial );
+				return String.Format( "(I) 0x{0:X}", ((Item)o).Serial.Value );
 			}
 			else if ( o is Type )
 			{
 				return ((Type)o).Name;
+			}
+			else if ( o is TextDefinition )
+			{
+				return ((TextDefinition)o).Format( true );
 			}
 			else
 			{
@@ -506,12 +523,14 @@ namespace Server.Gumps
 
 		private ArrayList BuildList()
 		{
-			Type type = m_Object.GetType();
-
-			PropertyInfo[] props = type.GetProperties( BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public );
-
-			ArrayList groups = GetGroups( type, props );
 			ArrayList list = new ArrayList();
+
+			if ( m_Type == null )
+				return list;
+
+			PropertyInfo[] props = m_Type.GetProperties( BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public );
+
+			ArrayList groups = GetGroups( m_Type, props );
 
 			for ( int i = 0; i < groups.Count; ++i )
 			{
@@ -674,7 +693,7 @@ namespace Server.Gumps
 			}
 			else if ( o is Item )
 			{
-				return String.Format( "(I) 0x{0:X}", ((Item)o).Serial );
+				return String.Format( "(I) 0x{0:X}", ((Item)o).Serial.Value );
 			}
 			else if ( o is Type )
 			{

@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Commands;
 using Server.Engines.Craft;
@@ -17,11 +17,35 @@ namespace Server.Items
 		Paladin,
 		Ninja,
 		Samurai,
-		Arcanist
+		Arcanist,
+		Mystic
+	}
+
+	public enum BookQuality
+	{
+		Regular,
+		Exceptional,
 	}
 
 	public class Spellbook : Item, ICraftable, ISlayer
 	{
+		private string m_EngravedText;
+		private BookQuality m_Quality;
+				
+		[CommandProperty( AccessLevel.GameMaster )]		
+		public string EngravedText
+		{
+			get{ return m_EngravedText; }
+			set{ m_EngravedText = value; InvalidateProperties(); }
+		}
+				
+		[CommandProperty( AccessLevel.GameMaster )]		
+		public BookQuality Quality
+		{
+			get{ return m_Quality; }
+			set{ m_Quality = value; InvalidateProperties(); }
+		}
+
 		public static void Initialize()
 		{
 			EventSink.OpenSpellbookRequest += new OpenSpellbookRequestEventHandler( EventSink_OpenSpellbookRequest );
@@ -78,6 +102,7 @@ namespace Server.Items
 				case 4: type = SpellbookType.Ninja; break;
 				case 5: type = SpellbookType.Samurai; break;
 				case 6:	type = SpellbookType.Arcanist; break;
+				case 7: type = SpellbookType.Mystic; break;
 			}
 
 			Spellbook book = Spellbook.Find( from, -1, type );
@@ -123,7 +148,7 @@ namespace Server.Items
 			}
 		}
 
-		private static Hashtable m_Table = new Hashtable();
+		private static Dictionary<Mobile, List<Spellbook>> m_Table = new Dictionary<Mobile, List<Spellbook>>();
 
 		public static SpellbookType GetTypeForSpell( int spellID )
 		{
@@ -139,6 +164,8 @@ namespace Server.Items
 				return SpellbookType.Ninja;
 			else if ( spellID >= 600 && spellID < 617 )
 				return SpellbookType.Arcanist;
+			else if ( spellID >= 677 && spellID < 693 )
+				return SpellbookType.Mystic;
 
 			return SpellbookType.Invalid;
 		}
@@ -173,6 +200,11 @@ namespace Server.Items
 			return Find( from, -1, SpellbookType.Arcanist );
 		}
 
+		public static Spellbook FindMystic( Mobile from )
+		{
+			return Find( from, -1, SpellbookType.Mystic );
+		}
+
 		public static Spellbook Find( Mobile from, int spellID )
 		{
 			return Find( from, spellID, GetTypeForSpell( spellID ) );
@@ -183,13 +215,15 @@ namespace Server.Items
 			if ( from == null )
 				return null;
 
-			ArrayList list = (ArrayList)m_Table[from];
-
 			if ( from.Deleted )
 			{
 				m_Table.Remove( from );
 				return null;
 			}
+
+			List<Spellbook> list = null;
+
+			m_Table.TryGetValue( from, out list );
 
 			bool searchAgain = false;
 
@@ -210,7 +244,7 @@ namespace Server.Items
 			return book;
 		}
 
-		public static Spellbook FindSpellbookInList( ArrayList list, Mobile from, int spellID, SpellbookType type )
+		public static Spellbook FindSpellbookInList( List<Spellbook> list, Mobile from, int spellID, SpellbookType type )
 		{
 			Container pack = from.Backpack;
 
@@ -219,25 +253,25 @@ namespace Server.Items
 				if ( i >= list.Count )
 					continue;
 
-				Spellbook book = (Spellbook)list[i];
+				Spellbook book = list[i];
 
 				if ( !book.Deleted && (book.Parent == from || (pack != null && book.Parent == pack)) && ValidateSpellbook( book, spellID, type ) )
 					return book;
 
-				list.Remove( i );
+				list.RemoveAt( i );
 			}
 
 			return null;
 		}
 
-		public static ArrayList FindAllSpellbooks( Mobile from )
+		public static List<Spellbook> FindAllSpellbooks( Mobile from )
 		{
-			ArrayList list = new ArrayList();
+			List<Spellbook> list = new List<Spellbook>();
 
 			Item item = from.FindItemOnLayer( Layer.OneHanded );
 
 			if ( item is Spellbook )
-				list.Add( item );
+				list.Add( (Spellbook)item );
 
 			Container pack = from.Backpack;
 
@@ -249,7 +283,7 @@ namespace Server.Items
 				item = pack.Items[i];
 
 				if ( item is Spellbook )
-					list.Add( item );
+					list.Add( (Spellbook)item );
 			}
 
 			return list;
@@ -429,7 +463,7 @@ namespace Server.Items
 			book.m_AosSkillBonuses = new AosSkillBonuses( newItem, m_AosSkillBonuses );
 		}
 
-		public override void OnAdded( object parent )
+		public override void OnAdded(IEntity parent)
 		{
 			if ( Core.AOS && parent is Mobile )
 			{
@@ -459,7 +493,7 @@ namespace Server.Items
 			}
 		}
 
-		public override void OnRemoved( object parent )
+		public override void OnRemoved(IEntity parent)
 		{
 			if ( Core.AOS && parent is Mobile )
 			{
@@ -488,11 +522,14 @@ namespace Server.Items
 		{
 		}
 
-		private static readonly ClientVersion Version_400a = new ClientVersion( "4.0.0a" );
-
 		public void DisplayTo( Mobile to )
 		{
 			// The client must know about the spellbook or it will crash!
+
+			NetState ns = to.NetState;
+
+			if ( ns == null )
+				return;
 
 			if ( Parent == null )
 			{
@@ -500,11 +537,8 @@ namespace Server.Items
 			}
 			else if ( Parent is Item )
 			{
-				if ( to.NetState == null )
-					return;
-
 				// What will happen if the client doesn't know about our parent?
-				if ( to.NetState.IsPost6017 )
+				if ( ns.ContainerGridLines )
 					to.Send( new ContainerContentUpdate6017( this ) );
 				else
 					to.Send( new ContainerContentUpdate( this ) );
@@ -515,20 +549,23 @@ namespace Server.Items
 				to.Send( new EquipUpdate( this ) );
 			}
 
-			to.Send( new DisplaySpellbook( this ) );
+			if ( ns.HighSeas )
+				to.Send( new DisplaySpellbookHS( this ) );
+			else
+				to.Send( new DisplaySpellbook( this ) );
 
-			if ( to.NetState == null )
-				return;
-
-			if ( Core.AOS ) {
-				if ( to.NetState.Version != null && to.NetState.Version >= Version_400a ) {
+			if ( ObjectPropertyList.Enabled ) {
+				if ( ns.NewSpellbook ) {
 					to.Send( new NewSpellbookContent( this, ItemID, BookOffset + 1, m_Content ) );
 				} else {
-					to.Send( new SpellbookContent( m_Count, BookOffset + 1, m_Content, this ) );
+					if (ns.ContainerGridLines) {
+						to.Send(new SpellbookContent6017(m_Count, BookOffset + 1, m_Content, this));
+					} else {
+						to.Send(new SpellbookContent(m_Count, BookOffset + 1, m_Content, this));
+					}
 				}
-			}
-			else {
-				if ( to.NetState.IsPost6017 ) {
+			} else {
+				if ( ns.ContainerGridLines ) {
 					to.Send( new SpellbookContent6017( m_Count, BookOffset + 1, m_Content, this ) );
 				} else {
 					to.Send( new SpellbookContent( m_Count, BookOffset + 1, m_Content, this ) );
@@ -550,6 +587,12 @@ namespace Server.Items
 		public override void GetProperties( ObjectPropertyList list )
 		{
 			base.GetProperties( list );
+	
+			if ( m_Quality == BookQuality.Exceptional )
+				list.Add( 1063341 ); // exceptional
+				
+			if ( m_EngravedText != null )
+				list.Add( 1072305, m_EngravedText ); // Engraved: ~1_INSCRIPTION~
 
 			if ( m_Crafter != null )
 				list.Add( 1050043, m_Crafter.Name ); // crafted by ~1_NAME~
@@ -641,6 +684,9 @@ namespace Server.Items
 			if ( (prop = m_AosAttributes.WeaponSpeed) != 0 )
 				list.Add( 1060486, prop.ToString() ); // swing speed increase ~1_val~%
 
+			if ( Core.ML && (prop = m_AosAttributes.IncreasedKarmaLoss) != 0 )
+				list.Add( 1075210, prop.ToString() ); // Increased Karma Loss ~1val~%
+
 			list.Add( 1042886, m_Count.ToString() ); // ~1_NUMBERS_OF_SPELLS~ Spells
 		}
 
@@ -687,7 +733,12 @@ namespace Server.Items
 		{
 			base.Serialize( writer );
 
-			writer.Write( (int) 3 ); // version
+			writer.Write( (int) 5 ); // version
+
+			writer.Write( (byte) m_Quality );	
+		
+			writer.Write( (string) m_EngravedText );	
+
 			writer.Write( m_Crafter );
 
 			writer.Write( (int)m_Slayer );
@@ -708,6 +759,18 @@ namespace Server.Items
 
 			switch ( version )
 			{
+				case 5:
+				{
+					m_Quality = (BookQuality) reader.ReadByte();		
+
+					goto case 4;
+				}
+				case 4:
+				{
+					m_EngravedText = reader.ReadString();		
+
+					goto case 3;
+				}
 				case 3:
 				{
 					m_Crafter = reader.ReadMobile();
@@ -806,7 +869,7 @@ namespace Server.Items
 				1								// 1 property   : 1/4 : 25%
 			};
 
-		public int OnCraft( int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, BaseTool tool, CraftItem craftItem, int resHue )
+		public virtual int OnCraft( int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, BaseTool tool, CraftItem craftItem, int resHue )
 		{
 			int magery = from.Skills.Magery.BaseFixedPoint;
 
@@ -848,6 +911,8 @@ namespace Server.Items
 
 			if ( makersMark )
 				Crafter = from;
+
+			m_Quality = (BookQuality) ( quality - 1 );
 
 			return quality;
 		}

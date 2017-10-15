@@ -22,7 +22,7 @@ namespace Server.Engines.Help
 
 		public static void Initialize()
 		{
-			CommandSystem.Register( "SpeechLog", AccessLevel.GameMaster, new CommandEventHandler( SpeechLog_OnCommand ) );
+			CommandSystem.Register( "SpeechLog", AccessLevel.Counselor, new CommandEventHandler( SpeechLog_OnCommand ) );
 		}
 
 		[Usage( "SpeechLog" )]
@@ -97,7 +97,7 @@ namespace Server.Engines.Help
 			{
 				SpeechLogEntry entry = (SpeechLogEntry) m_Queue.Peek();
 
-				if ( DateTime.Now - entry.Created > EntryDuration )
+				if ( DateTime.UtcNow - entry.Created > EntryDuration )
 					m_Queue.Dequeue();
 				else
 					break;
@@ -142,7 +142,7 @@ namespace Server.Engines.Help
 		{
 			m_From = from;
 			m_Speech = speech;
-			m_Created = DateTime.Now;
+			m_Created = DateTime.UtcNow;
 		}
 	}
 }

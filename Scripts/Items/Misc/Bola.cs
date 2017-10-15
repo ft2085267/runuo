@@ -36,7 +36,7 @@ namespace Server.Items
 			{
 				from.SendLocalizedMessage( 1049631 ); // This bola is already being used.
 			}
-			else if ( !Core.AOS && (from.FindItemOnLayer( Layer.OneHanded ) != null || from.FindItemOnLayer( Layer.TwoHanded ) != null) )
+			else if ( !HasFreeHands( from ) )
 			{
 				from.SendLocalizedMessage( 1040015 ); // Your hands must be free to use this
 			}
@@ -51,15 +51,6 @@ namespace Server.Items
 			else
 			{
 				EtherealMount.StopMounting( from );
-
-				Item one = from.FindItemOnLayer( Layer.OneHanded );
-				Item two = from.FindItemOnLayer( Layer.TwoHanded );
-
-				if ( one != null )
-					from.AddToBackpack( one );
-
-				if ( two != null )
-					from.AddToBackpack( two );
 
 				from.Target = new BolaTarget( this );
 				from.LocalOverheadMessage( MessageType.Emote, 0x3B2, 1049632 ); // * You begin to swing the bola...*
@@ -82,8 +73,6 @@ namespace Server.Items
 			if ( Core.AOS )
 				new Bola().MoveToWorld( to.Location, to.Map );
 
-			to.Damage( 1, from );
-
 			if ( to is ChaosDragoon || to is ChaosDragoonElite )
 				from.SendLocalizedMessage( 1042047 ); // You fail to knock the rider from its mount.
 
@@ -91,14 +80,73 @@ namespace Server.Items
 			if ( mt != null && !( to is ChaosDragoon || to is ChaosDragoonElite ) )
 				mt.Rider = null;
 
-			to.SendLocalizedMessage( 1040023 ); // You have been knocked off of your mount!
+			if (to is PlayerMobile)
+			{
+				if (Server.Spells.Ninjitsu.AnimalForm.UnderTransformation(to))
+				{
+					to.SendLocalizedMessage(1114066, from.Name); // ~1_NAME~ knocked you out of animal form!
+				}
+				else if (to.Mounted)
+				{
+					to.SendLocalizedMessage(1040023); // You have been knocked off of your mount!
+				}
 
-			BaseMount.SetMountPrevention( to, BlockMountType.Dazed, TimeSpan.FromSeconds( 3.0 ) );
+				(to as PlayerMobile).SetMountBlock(BlockMountType.Dazed, TimeSpan.FromSeconds( Core.ML ? 10 : 3 ), true);
+			}
+
+			if (Core.AOS && from is PlayerMobile) /* only failsafe, attacker should already be dismounted */
+			{
+				(from as PlayerMobile).SetMountBlock( BlockMountType.BolaRecovery, TimeSpan.FromSeconds( Core.ML ? 10 : 3 ), true );
+			}
+
+			to.Damage(1);
 
 			Timer.DelayCall( TimeSpan.FromSeconds( 2.0 ), new TimerStateCallback( ReleaseBolaLock ), from );
 		}
 
-		private class BolaTarget : Target
+		private static bool HasFreeHands( Mobile from )
+		{
+			Item one = from.FindItemOnLayer( Layer.OneHanded );
+			Item two = from.FindItemOnLayer( Layer.TwoHanded );
+
+			if ( Core.SE )
+			{
+				Container pack = from.Backpack;
+
+				if ( pack != null )
+				{
+					if ( one != null && one.Movable )
+					{
+						pack.DropItem( one );
+						one = null;
+					}
+
+					if ( two != null && two.Movable )
+					{
+						pack.DropItem( two );
+						two = null;
+					}
+				}
+			}
+			else if ( Core.AOS )
+			{
+				if ( one != null && one.Movable )
+				{
+					from.AddToBackpack( one );
+					one = null;
+				}
+
+				if ( two != null && two.Movable )
+				{
+					from.AddToBackpack( two );
+					two = null;
+				}
+			}
+
+			return ( one == null && two == null );
+		}
+
+		public class BolaTarget : Target
 		{
 			private Bola m_Bola;
 
@@ -120,7 +168,7 @@ namespace Server.Items
 					{
 						from.SendLocalizedMessage( 1040019 ); // The bola must be in your pack to use it.
 					}
-					else if ( !Core.AOS && (from.FindItemOnLayer( Layer.OneHanded ) != null || from.FindItemOnLayer( Layer.TwoHanded ) != null) )
+					else if ( !HasFreeHands( from ) )
 					{
 						from.SendLocalizedMessage( 1040015 ); // Your hands must be free to use this
 					}
@@ -132,7 +180,7 @@ namespace Server.Items
 					{
 						from.SendLocalizedMessage( 1070902 ); // You can't use this while in an animal form!
 					}
-					else if ( !to.Mounted )
+					else if (!to.Mounted && !Server.Spells.Ninjitsu.AnimalForm.UnderTransformation(to))
 					{
 						from.SendLocalizedMessage( 1049628 ); // You have no reason to throw a bola at that.
 					}
@@ -143,19 +191,7 @@ namespace Server.Items
 					{
 						EtherealMount.StopMounting( from );
 
-						Item one = from.FindItemOnLayer( Layer.OneHanded );
-						Item two = from.FindItemOnLayer( Layer.TwoHanded );
-
-						if ( one != null )
-							from.AddToBackpack( one );
-
-						if ( two != null )
-							from.AddToBackpack( two );
-
 						from.DoHarmful( to );
-
-						if ( Core.AOS )
-							BaseMount.SetMountPrevention( from, BlockMountType.BolaRecovery, TimeSpan.FromSeconds( 3.0 ) );
 
 						m_Bola.Consume();
 

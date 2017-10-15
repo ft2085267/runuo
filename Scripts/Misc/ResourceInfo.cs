@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 
 namespace Server.Items
 {
@@ -52,6 +52,8 @@ namespace Server.Items
 		private int m_WeaponColdDamage;
 		private int m_WeaponPoisonDamage;
 		private int m_WeaponEnergyDamage;
+		private int m_WeaponChaosDamage;
+		private int m_WeaponDirectDamage;
 		private int m_WeaponDurability;
 		private int m_WeaponLuck;
 		private int m_WeaponGoldIncrease;
@@ -76,6 +78,8 @@ namespace Server.Items
 		public int WeaponColdDamage{ get{ return m_WeaponColdDamage; } set{ m_WeaponColdDamage = value; } }
 		public int WeaponPoisonDamage{ get{ return m_WeaponPoisonDamage; } set{ m_WeaponPoisonDamage = value; } }
 		public int WeaponEnergyDamage{ get{ return m_WeaponEnergyDamage; } set{ m_WeaponEnergyDamage = value; } }
+		public int WeaponChaosDamage{ get{ return m_WeaponChaosDamage; } set{ m_WeaponChaosDamage = value; } }
+		public int WeaponDirectDamage{ get{ return m_WeaponDirectDamage; } set{ m_WeaponDirectDamage = value; } }
 		public int WeaponDurability{ get{ return m_WeaponDurability; } set{ m_WeaponDurability = value; } }
 		public int WeaponLuck{ get{ return m_WeaponLuck; } set{ m_WeaponLuck = value; } }
 		public int WeaponGoldIncrease{ get{ return m_WeaponGoldIncrease; } set{ m_WeaponGoldIncrease = value; } }
@@ -476,7 +480,7 @@ namespace Server.Items
 			return ( resource == CraftResource.None || resource == CraftResource.Iron || resource == CraftResource.RegularLeather || resource == CraftResource.RegularWood );
 		}
 
-		private static Hashtable m_TypeTable;
+		private static Dictionary<Type, CraftResource> m_TypeTable;
 
 		/// <summary>
 		/// Registers that '<paramref name="resourceType"/>' uses '<paramref name="resource"/>' so that it can later be queried by <see cref="CraftResources.GetFromType"/>
@@ -484,7 +488,7 @@ namespace Server.Items
 		public static void RegisterType( Type resourceType, CraftResource resource )
 		{
 			if ( m_TypeTable == null )
-				m_TypeTable = new Hashtable();
+				m_TypeTable = new Dictionary<Type, CraftResource>();
 
 			m_TypeTable[resourceType] = resource;
 		}
@@ -497,12 +501,12 @@ namespace Server.Items
 			if ( m_TypeTable == null )
 				return CraftResource.None;
 
-			object obj = m_TypeTable[resourceType];
-
-			if ( !(obj is CraftResource) )
+			CraftResource res;
+			
+			if (!m_TypeTable.TryGetValue(resourceType, out res))
 				return CraftResource.None;
 
-			return (CraftResource)obj;
+			return res;
 		}
 
 		/// <summary>

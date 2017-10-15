@@ -201,6 +201,14 @@ namespace Server.Engines.Craft
 			AddCraft( typeof( BarrelHoops ), 1044047, 1024321, -15.0, 35.0, typeof( IronIngot ), 1044036, 5, 1044037 );
 			AddCraft( typeof( Hinge ), 1044047, 1024181, 5.0, 55.0, typeof( IronIngot ), 1044036, 2, 1044037 );
 			AddCraft( typeof( BolaBall ), 1044047, 1023699, 45.0, 95.0, typeof( IronIngot ), 1044036, 10, 1044037 );
+
+			if ( Core.ML )
+			{
+				index = AddCraft( typeof( JeweledFiligree ), 1044047, 1072894, 70.0, 110.0, typeof( IronIngot ), 1044036, 2, 1044037 );
+				AddRes( index, typeof( StarSapphire ), 1044231, 1, 1044253 );
+				AddRes( index, typeof( Ruby ), 1044234, 1, 1044253 );
+				SetNeededExpansion( index, Expansion.ML );
+			}
 			#endregion
 
 			#region Utensils
@@ -247,7 +255,6 @@ namespace Server.Engines.Craft
 
 				index = AddCraft( typeof( FancyWindChimes ), 1044050, 1030291, 80.0, 130.0, typeof( IronIngot ), 1044036, 15, 1044037 );
 				SetNeededExpansion( index, Expansion.SE );
-
 			}
 			#endregion
 
@@ -288,8 +295,7 @@ namespace Server.Engines.Craft
 			AddRes( index, typeof( Bottle ), 1044250, 10, 1044253 );
 			AddRes( index, typeof( BarrelLid ), 1044251, 1, 1044253 );
 			AddRes( index, typeof( BarrelTap ), 1044252, 1, 1044253 );
-			
-			
+
 			#endregion
 
 			#region Traps
@@ -329,6 +335,34 @@ namespace Server.Engines.Craft
 			index = AddCraft( typeof( FactionTrapRemovalKit ), 1044052, 1046445, 90.0, 115.0, typeof( Silver ), 1044572, 500, 1044253 );
 			AddRes( index, typeof( IronIngot ), 1044036, 10, 1044037 );
 			#endregion
+
+			// Magic Jewelry
+			if ( Core.ML )
+			{
+				index = AddCraft( typeof( ResilientBracer ), 1073107, 1072933, 100.0, 125.0, typeof( IronIngot ), 1044036, 2, 1044037 );
+				AddRes( index, typeof( CapturedEssence ), 1032686, 1, 1044253 );
+				AddRes( index, typeof( BlueDiamond ), 1032696, 10, 1044253 );
+				AddRes( index, typeof( Diamond ), 1062608, 50, 1044253 );
+				AddRareRecipe( index, 600 );
+				ForceNonExceptional( index );
+				SetNeededExpansion( index, Expansion.ML );
+
+				index = AddCraft( typeof( EssenceOfBattle ), 1073107, 1072935, 100.0, 125.0, typeof( IronIngot ), 1044036, 2, 1044037 );
+				AddRes( index, typeof( CapturedEssence ), 1032686, 1, 1044253 );
+				AddRes( index, typeof( FireRuby ), 1032695, 10, 1044253 );
+				AddRes( index, typeof( Ruby ), 1062603, 50, 1044253 );
+				AddRareRecipe( index, 601 );
+				ForceNonExceptional( index );
+				SetNeededExpansion( index, Expansion.ML );
+
+				index = AddCraft( typeof( PendantOfTheMagi ), 1073107, 1072937, 100.0, 125.0, typeof( IronIngot ), 1044036, 2, 1044037 );
+				AddRes( index, typeof( EyeOfTheTravesty ), 1032685, 1, 1044253 );
+				AddRes( index, typeof( WhitePearl ), 1032694, 10, 1044253 );
+				AddRes( index, typeof( StarSapphire ), 1062600, 50, 1044253 );
+				AddRareRecipe( index, 602 );
+				ForceNonExceptional( index );
+				SetNeededExpansion( index, Expansion.ML );
+			}
 
 			// Set the overridable material
 			SetSubRes( typeof( IronIngot ), 1044022 );

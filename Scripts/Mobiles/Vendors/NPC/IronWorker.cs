@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Items;
 
@@ -7,8 +7,8 @@ namespace Server.Mobiles
 {
 	public class IronWorker : BaseVendor
 	{
-		private ArrayList m_SBInfos = new ArrayList();
-		protected override ArrayList SBInfos{ get { return m_SBInfos; } }
+		private List<SBInfo> m_SBInfos = new List<SBInfo>();
+		protected override List<SBInfo> SBInfos{ get { return m_SBInfos; } }
 
 		[Constructable]
 		public IronWorker() : base( "the iron worker" )
@@ -62,12 +62,12 @@ namespace Server.Mobiles
 			switch ( Utility.Random( 3 ) )
 			{
 				case 0:
-				case 1: AddItem( new JesterHat( RandomBrightHue() ) ); break;
-				case 2: AddItem( new Bandana( RandomBrightHue() ) ); break;
+				case 1: AddItem( new JesterHat( Utility.RandomBrightHue() ) ); break;
+				case 2: AddItem( new Bandana( Utility.RandomBrightHue() ) ); break;
 			}
 
 			if ( item == null )
-				AddItem( new FullApron( RandomBrightHue() ) );
+				AddItem( new FullApron( Utility.RandomBrightHue() ) );
 
 			AddItem( new Bascinet() );
 			AddItem( new SmithHammer() );
@@ -75,32 +75,32 @@ namespace Server.Mobiles
 			item = FindItemOnLayer( Layer.Pants );
 
 			if ( item != null )
-				item.Hue = RandomBrightHue();
+				item.Hue = Utility.RandomBrightHue();
 
 			item = FindItemOnLayer( Layer.OuterLegs );
 
 			if ( item != null )
-				item.Hue = RandomBrightHue();
+				item.Hue = Utility.RandomBrightHue();
 
 			item = FindItemOnLayer( Layer.InnerLegs );
 
 			if ( item != null )
-				item.Hue = RandomBrightHue();
+				item.Hue = Utility.RandomBrightHue();
 
 			item = FindItemOnLayer( Layer.OuterTorso );
 
 			if ( item != null )
-				item.Hue = RandomBrightHue();
+				item.Hue = Utility.RandomBrightHue();
 
 			item = FindItemOnLayer( Layer.InnerTorso );
 
 			if ( item != null )
-				item.Hue = RandomBrightHue();
+				item.Hue = Utility.RandomBrightHue();
 
 			item = FindItemOnLayer( Layer.Shirt );
 
 			if ( item != null )
-				item.Hue = RandomBrightHue();
+				item.Hue = Utility.RandomBrightHue();
 		}
 
 		public IronWorker( Serial serial ) : base( serial )

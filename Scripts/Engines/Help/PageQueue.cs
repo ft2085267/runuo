@@ -143,7 +143,7 @@ namespace Server.Engines.Help
 		public PageEntry( Mobile sender, string message, PageType type )
 		{
 			m_Sender = sender;
-			m_Sent = DateTime.Now;
+			m_Sent = DateTime.UtcNow;
 			m_Message = Utility.FixHtml( message );
 			m_Type = type;
 			m_PageLocation = sender.Location;
@@ -338,23 +338,23 @@ namespace Server.Engines.Help
 				if ( m != null && m.AccessLevel >= AccessLevel.Counselor && m.AutoPageNotify && !IsHandling( m ) )
 					m.SendMessage( "A new page has been placed in the queue." );
 
-				if ( m != null && m.AccessLevel >= AccessLevel.Counselor && m.AutoPageNotify && m.LastMoveTime >= (DateTime.Now - TimeSpan.FromMinutes( 10.0 )) )
+				if (m != null && m.AccessLevel >= AccessLevel.Counselor && m.AutoPageNotify && Core.TickCount - m.LastMoveTime < 600000)
 					isStaffOnline = true;
 			}
 
 			if ( !isStaffOnline )
 				entry.Sender.SendMessage( "We are sorry, but no staff members are currently available to assist you.  Your page will remain in the queue until one becomes available, or until you cancel it manually." );
 
-			if ( Email.SpeechLogPageAddresses != null && entry.SpeechLog != null )
+			if ( Email.FromAddress != null && Email.SpeechLogPageAddresses != null && entry.SpeechLog != null )
 				SendEmail( entry );
 		}
 
 		private static void SendEmail( PageEntry entry )
 		{
 			Mobile sender = entry.Sender;
-			DateTime time = DateTime.Now;
+			DateTime time = DateTime.UtcNow;
 
-			MailMessage mail = new MailMessage( "RunUO", Email.SpeechLogPageAddresses );
+			MailMessage mail = new MailMessage( Email.FromAddress, Email.SpeechLogPageAddresses );
 
 			mail.Subject = "RunUO Speech Log Page Forwarding";
 

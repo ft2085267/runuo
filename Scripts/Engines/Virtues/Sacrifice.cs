@@ -20,10 +20,15 @@ namespace Server
 
 		public static void OnVirtueUsed( Mobile from )
 		{
-			if ( from.Alive )
-				from.Target = new InternalTarget();
-			else
-				Resurrect( from );
+			if ( !from.Hidden )
+			{
+				if ( from.Alive )
+					from.Target = new InternalTarget();
+				else
+					Resurrect( from );
+			}
+			else 
+				from.SendLocalizedMessage( 1052015 ); // You cannot do that while hidden.
 		}
 
 		public static void CheckAtrophy( Mobile from )
@@ -35,7 +40,7 @@ namespace Server
 
 			try
 			{
-				if ( (pm.LastSacrificeLoss + LossDelay) < DateTime.Now )
+				if ( (pm.LastSacrificeLoss + LossDelay) < DateTime.UtcNow )
 				{
 					if ( VirtueHelper.Atrophy( from, VirtueName.Sacrifice, LossAmount ) )
 						from.SendLocalizedMessage( 1052041 ); // You have lost some Sacrifice.
@@ -43,7 +48,7 @@ namespace Server
 					VirtueLevel level = VirtueHelper.GetLevel( from, VirtueName.Sacrifice );
 
 					pm.AvailableResurrects = (int)level;
-					pm.LastSacrificeLoss = DateTime.Now;
+					pm.LastSacrificeLoss = DateTime.UtcNow;
 				}
 			}
 			catch
@@ -119,7 +124,7 @@ namespace Server
 			{
 				from.SendLocalizedMessage( 1052017 ); // You do not have enough fame to sacrifice.
 			}
-			else if ( DateTime.Now < (pm.LastSacrificeGain + GainDelay) )
+			else if ( DateTime.UtcNow < (pm.LastSacrificeGain + GainDelay) )
 			{
 				from.SendLocalizedMessage( 1052016 ); // You must wait approximately one day before sacrificing again.
 			}
@@ -143,7 +148,7 @@ namespace Server
 
 				Timer.DelayCall( TimeSpan.FromSeconds( 1.0 ), new TimerCallback( targ.Delete ) );
 
-				pm.LastSacrificeGain = DateTime.Now;
+				pm.LastSacrificeGain = DateTime.UtcNow;
 
 				bool gainedPath = false;
 

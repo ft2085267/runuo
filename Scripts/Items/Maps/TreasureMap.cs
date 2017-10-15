@@ -444,10 +444,10 @@ namespace Server.Items
 
 			private int m_Count;
 
-			private DateTime m_NextSkillTime;
-			private DateTime m_NextSpellTime;
-			private DateTime m_NextActionTime;
-			private DateTime m_LastMoveTime;
+			private long m_NextSkillTime;
+			private long m_NextSpellTime;
+			private long m_NextActionTime;
+			private long m_LastMoveTime;
 
 			public DigTimer( Mobile from, TreasureMap treasureMap, Point3D location, Map map ) : base( TimeSpan.Zero, TimeSpan.FromSeconds( 1.0 ) )
 			{
@@ -686,6 +686,9 @@ namespace Server.Items
 			from.LocalOverheadMessage( MessageType.Regular, 0x3B2, 503019 ); // You successfully decode a treasure map!
 			Decoder = from;
 
+			if ( Core.AOS )
+				LootType = LootType.Blessed;
+
 			DisplayTo( from );
 		}
 
@@ -793,13 +796,13 @@ namespace Server.Items
 		}
 
 		public override int LabelNumber
-		{ 
+		{
 			get
-			{ 
+			{
 				if ( m_Decoder != null )
 				{
 					if ( m_Level == 6 )
-						return 1063453;	
+						return 1063453;
 					else
 						return 1041516 + m_Level;
 				}
@@ -887,6 +890,9 @@ namespace Server.Items
 					break;
 				}
 			}
+
+			if ( Core.AOS && m_Decoder != null && LootType == LootType.Regular)
+				LootType = LootType.Blessed;
 		}
 	}
 

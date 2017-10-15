@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using Server;
+using Server.Items;
+using Server.Targeting;
 
 namespace Server.Mobiles
 {
@@ -30,22 +32,6 @@ namespace Server.Mobiles
 			Body = bodyID;
 
 			m_InternalItem = new MountItem( this, itemID );
-		}
-
-		public BaseMount( Serial serial ) : base( serial )
-		{
-		}
-
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
-
-			writer.Write( (int) 1 ); // version
-
-			writer.Write( m_NextMountAbility );
-
-			writer.Write( m_Rider );
-			writer.Write( m_InternalItem );
 		}
 
 		[Hue, CommandProperty( AccessLevel.GameMaster )]
@@ -86,6 +72,23 @@ namespace Server.Mobiles
 			Rider = null;
 
 			base.OnDelete();
+		}
+
+		public BaseMount( Serial serial )
+			: base( serial )
+		{
+		}
+
+		public override void Serialize( GenericWriter writer )
+		{
+			base.Serialize( writer );
+
+			writer.Write( ( int )1 ); // version
+
+			writer.Write( m_NextMountAbility );
+
+			writer.Write( m_Rider );
+			writer.Write( m_InternalItem );
 		}
 
 		public override void Deserialize( GenericReader reader )
@@ -134,7 +137,7 @@ namespace Server.Mobiles
 				return;
 			}
 
-			if ( !CheckMountAllowed( from, true ) )
+			if ( !CheckMountAllowed( from ) )
 				return;
 
 			if ( from.Mounted )
@@ -244,8 +247,10 @@ namespace Server.Mobiles
 					}
 					else
 					{
-						if ( m_Rider != null )
+						if( m_Rider != null )
+						{
 							Dismount( m_Rider );
+						}
 
 						Dismount( value );
 
@@ -255,6 +260,11 @@ namespace Server.Mobiles
 						value.Direction = this.Direction;
 
 						Internalize();
+
+						if( value.Target is Bola.BolaTarget )
+						{
+							Target.Cancel( value );
+						}
 					}
 
 					m_Rider = value;
@@ -262,97 +272,22 @@ namespace Server.Mobiles
 			}
 		}
 
-		private class BlockEntry
+		// 1040024 You are still too dazed from being knocked off your mount to ride!
+		// 1062910 You cannot mount while recovering from a bola throw.
+		// 1070859 You cannot mount while recovering from a dismount special maneuver.
+
+		public static bool CheckMountAllowed( Mobile mob )
 		{
-			public BlockMountType m_Type;
-			public DateTime m_Expiration;
+			bool result = true;
 
-			public bool IsExpired{ get{ return ( DateTime.Now >= m_Expiration ); } }
-
-			public BlockEntry( BlockMountType type, DateTime expiration )
+			if ((mob is PlayerMobile) && (mob as PlayerMobile).MountBlockReason != BlockMountType.None)
 			{
-				m_Type = type;
-				m_Expiration = expiration;
-			}
-		}
+				mob.SendLocalizedMessage((int)(mob as PlayerMobile).MountBlockReason);
 
-		private static Hashtable m_Table = new Hashtable();
-
-		public static void SetMountPrevention( Mobile mob, BlockMountType type, TimeSpan duration )
-		{
-			if ( mob == null )
-				return;
-
-			DateTime expiration = DateTime.Now + duration;
-
-			BlockEntry entry = m_Table[mob] as BlockEntry;
-
-			if ( entry != null )
-			{
-				entry.m_Type = type;
-				entry.m_Expiration = expiration;
-			}
-			else
-			{
-				m_Table[mob] = entry = new BlockEntry( type, expiration );
-			}
-		}
-
-		public static void ClearMountPrevention( Mobile mob )
-		{
-			if ( mob != null )
-				m_Table.Remove( mob );
-		}
-
-		public static BlockMountType GetMountPrevention( Mobile mob )
-		{
-			if ( mob == null )
-				return BlockMountType.None;
-
-			BlockEntry entry = m_Table[mob] as BlockEntry;
-
-			if ( entry == null )
-				return BlockMountType.None;
-
-			if ( entry.IsExpired )
-			{
-				m_Table.Remove( mob );
-				return BlockMountType.None;
+				result = false;
 			}
 
-			return entry.m_Type;
-		}
-
-		public static bool CheckMountAllowed( Mobile mob, bool message )
-		{
-			BlockMountType type = GetMountPrevention( mob );
-
-			if ( type == BlockMountType.None )
-				return true;
-
-			if ( message )
-			{
-				switch ( type )
-				{
-					case BlockMountType.Dazed:
-					{
-						mob.SendLocalizedMessage( 1040024 ); // You are still too dazed from being knocked off your mount to ride!
-						break;
-					}
-					case BlockMountType.BolaRecovery:
-					{
-						mob.SendLocalizedMessage( 1062910 ); // You cannot mount while recovering from a bola throw.
-						break;
-					}
-					case BlockMountType.DismountRecovery:
-					{
-						mob.SendLocalizedMessage( 1070859 ); // You cannot mount while recovering from a dismount special maneuver.
-						break;
-					}
-				}
-			}
-
-			return false;
+			return result;
 		}
 
 		public virtual void OnRiderDamaged( int amount, Mobile from, bool willKill )
@@ -364,10 +299,10 @@ namespace Server.Mobiles
 			if( attacker == null )
 				attacker = m_Rider.FindMostRecentDamager( true );
 
-			if( !(attacker == this || attacker == m_Rider || willKill || DateTime.Now < m_NextMountAbility) )
+			if( !(attacker == this || attacker == m_Rider || willKill || DateTime.UtcNow < m_NextMountAbility) )
 			{
 				if( DoMountAbility( amount, from ) )
-					m_NextMountAbility = DateTime.Now + MountAbilityDelay;
+					m_NextMountAbility = DateTime.UtcNow + MountAbilityDelay;
 
 			}
 		}
@@ -451,12 +386,5 @@ namespace Server.Mobiles
 			}
 		}
 	}
-
-	public enum BlockMountType
-	{
-		None = -1,
-		Dazed,
-		BolaRecovery,
-		DismountRecovery
-	}
 }
+

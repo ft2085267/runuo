@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Misc;
 using Server.Items;
@@ -9,8 +9,8 @@ namespace Server.Mobiles
 {
 	public abstract class BaseHealer : BaseVendor
 	{
-		private ArrayList m_SBInfos = new ArrayList();
-		protected override ArrayList SBInfos{ get { return m_SBInfos; } }
+		private List<SBInfo> m_SBInfos = new List<SBInfo>();
+		protected override List<SBInfo> SBInfos{ get { return m_SBInfos; } }
 
 		public override bool IsActiveVendor{ get{ return false; } }
 		public override bool IsInvulnerable{ get{ return false; } }
@@ -89,7 +89,7 @@ namespace Server.Mobiles
 		{
 			Direction = GetDirectionTo( m );
 
-			m.PlaySound( 0x214 );
+			m.PlaySound(0x1F2);
 			m.FixedEffect( 0x376A, 10, 16 );
 
 			m.CloseGump( typeof( ResurrectGump ) );
@@ -117,11 +117,11 @@ namespace Server.Mobiles
 
 		public override void OnMovement( Mobile m, Point3D oldLocation )
 		{
-			if ( !m.Frozen && DateTime.Now >= m_NextResurrect && InRange( m, 4 ) && !InRange( oldLocation, 4 ) && InLOS( m ) )
+			if ( !m.Frozen && DateTime.UtcNow >= m_NextResurrect && InRange( m, 4 ) && !InRange( oldLocation, 4 ) && InLOS( m ) )
 			{
 				if ( !m.Alive )
 				{
-					m_NextResurrect = DateTime.Now + ResurrectDelay;
+					m_NextResurrect = DateTime.UtcNow + ResurrectDelay;
 
 					if ( m.Map == null || !m.Map.CanFit( m.Location, 16, false, false ) )
 					{

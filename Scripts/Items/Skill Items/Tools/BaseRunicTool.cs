@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Server.Items
 {
@@ -180,8 +181,8 @@ namespace Server.Items
 
 		private static void ApplySkillBonus( AosSkillBonuses attrs, int min, int max, int index, int low, int high )
 		{
-			SkillName[] possibleSkills = ( attrs.Owner is Spellbook ? m_PossibleSpellbookSkills : m_PossibleBonusSkills );
-			int count = ( Core.SE ? possibleSkills.Length : possibleSkills.Length - 2 );
+			List<SkillName> possibleSkills = new List<SkillName>( attrs.Owner is Spellbook ? m_PossibleSpellbookSkills : m_PossibleBonusSkills );
+			int count = ( Core.SE ? possibleSkills.Count : possibleSkills.Count - 2 );
 
 			SkillName sk, check;
 			double bonus;
@@ -190,11 +191,12 @@ namespace Server.Items
 			do
 			{
 				found = false;
-				sk = possibleSkills[Utility.Random( count )];
+				sk = possibleSkills[Utility.Random( count-- )];
+				possibleSkills.Remove(sk);
 
 				for ( int i = 0; !found && i < 5; ++i )
 					found = ( attrs.GetValues( i, out check, out bonus ) && check == sk );
-			} while ( found );
+			} while ( found && count > 0 );
 
 			attrs.SetValues( index, sk, Scale( min, max, low, high ) );
 		}
@@ -349,9 +351,9 @@ namespace Server.Items
 
 		public static void GetElementalDamages( BaseWeapon weapon, bool randomizeOrder )
 		{
-			int fire, phys, cold, nrgy, pois;
+			int fire, phys, cold, nrgy, pois, chaos, direct;
 
-			weapon.GetDamageTypes( null, out phys, out fire, out cold, out pois, out nrgy );
+			weapon.GetDamageTypes( null, out phys, out fire, out cold, out pois, out nrgy, out chaos, out direct );
 
 			int totalDamage = phys;
 
@@ -476,7 +478,10 @@ namespace Server.Items
 			if ( !isShield && armor.MeditationAllowance == ArmorMeditationAllowance.All )
 				m_Props.Set( 3, true ); // remove mage armor from possible properties
 			if ( armor.Resource >= CraftResource.RegularLeather && armor.Resource <= CraftResource.BarbedLeather )
+			{
 				m_Props.Set( 0, true ); // remove lower requirements from possible properties for leather armor
+				m_Props.Set( 2, true ); // remove durability bonus from possible properties
+			}
 			if ( armor.RequiredRace == Race.Elf )
 				m_Props.Set( 7, true ); // elves inherently have night sight and elf only armor doesn't get night sight as a mod
 

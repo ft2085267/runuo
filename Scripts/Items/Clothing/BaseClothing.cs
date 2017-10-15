@@ -167,7 +167,7 @@ namespace Server.Items
 
 		public virtual int BaseStrBonus{ get{ return 0; } }
 		public virtual int BaseDexBonus{ get{ return 0; } }
-		public virtual int BaseIntBonus { get { return 0; } }
+		public virtual int BaseIntBonus{ get{ return 0; } }
 
 		public override bool AllowSecureTrade( Mobile from, Mobile to, Mobile newOwner, bool accepted )
 		{
@@ -335,7 +335,7 @@ namespace Server.Items
 			return m_AosClothingAttributes.LowerStatReq;
 		}
 
-		public override void OnAdded( object parent )
+		public override void OnAdded(IEntity parent)
 		{
 			Mobile mob = parent as Mobile;
 
@@ -351,7 +351,7 @@ namespace Server.Items
 			base.OnAdded( parent );
 		}
 
-		public override void OnRemoved( object parent )
+		public override void OnRemoved(IEntity parent)
 		{
 			Mobile mob = parent as Mobile;
 
@@ -656,6 +656,9 @@ namespace Server.Items
 
 			if ( (prop = m_AosAttributes.WeaponSpeed) != 0 )
 				list.Add( 1060486, prop.ToString() ); // swing speed increase ~1_val~%
+
+			if ( Core.ML && (prop = m_AosAttributes.IncreasedKarmaLoss) != 0 )
+				list.Add( 1075210, prop.ToString() ); // Increased Karma Loss ~1val~%
 
 			base.AddResistanceProperties( list );
 

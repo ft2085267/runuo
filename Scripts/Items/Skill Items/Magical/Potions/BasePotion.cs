@@ -26,10 +26,19 @@ namespace Server.Items
 		HealGreater,
 		ExplosionLesser,
 		Explosion,
-		ExplosionGreater
+		ExplosionGreater,
+		Conflagration,
+		ConflagrationGreater,
+		MaskOfDeath,		// Mask of Death is not available in OSI but does exist in cliloc files
+		MaskOfDeathGreater,	// included in enumeration for compatability if later enabled by OSI
+		ConfusionBlast,
+		ConfusionBlastGreater,
+		Invisibility,
+		Parasitic,
+		Darkglow,
 	}
 
-	public abstract class BasePotion : Item, ICraftable
+	public abstract class BasePotion : Item, ICraftable, ICommodity
 	{
 		private PotionEffect m_PotionEffect;
 
@@ -45,6 +54,9 @@ namespace Server.Items
 				InvalidateProperties();
 			}
 		}
+
+		int ICommodity.DescriptionNumber { get { return LabelNumber; } }
+		bool ICommodity.IsDeedable { get { return (Core.ML); } }
 
 		public override int LabelNumber{ get{ return 1041314 + (int)m_PotionEffect; } }
 
@@ -69,6 +81,13 @@ namespace Server.Items
 
 			if ( handTwo is BaseWeapon )
 				handOne = handTwo;
+			if ( handTwo is BaseRanged )
+			{
+				BaseRanged ranged = (BaseRanged) handTwo;
+				
+				if ( ranged.Balanced )
+					return true;
+			}
 
 			return ( handOne == null || handTwo == null );
 		}
@@ -80,10 +99,36 @@ namespace Server.Items
 
 			if ( from.InRange( this.GetWorldLocation(), 1 ) )
 			{
-				if ( !RequireFreeHand || HasFreeHand( from ) )
-					Drink( from );
+				if (!RequireFreeHand || HasFreeHand(from))
+				{
+					if (this is BaseExplosionPotion && Amount > 1)
+					{
+						BasePotion pot = (BasePotion)Activator.CreateInstance(this.GetType());
+
+						if (pot != null)
+						{
+							Amount--;
+
+							if (from.Backpack != null && !from.Backpack.Deleted)
+							{
+								from.Backpack.DropItem(pot);
+							}
+							else
+							{
+								pot.MoveToWorld(from.Location, from.Map);
+							}
+							pot.Drink( from );
+						}
+					}
+					else
+					{
+						this.Drink( from );
+					}
+				}
 				else
-					from.SendLocalizedMessage( 502172 ); // You must have a free hand to drink a potion.
+				{
+					from.SendLocalizedMessage(502172); // You must have a free hand to drink a potion.
+				}
 			}
 			else
 			{
@@ -128,18 +173,24 @@ namespace Server.Items
 
 			m.PlaySound( 0x2D6 );
 
-			m.AddToBackpack( new Bottle() );
+			#region Dueling
+			if ( !Engines.ConPVP.DuelContext.IsFreeConsume( m ) )
+				m.AddToBackpack( new Bottle() );
+			#endregion
 
-			if ( m.Body.IsHuman /*&& !m.Mounted*/ )
+			if ( m.Body.IsHuman && !m.Mounted )
 				m.Animate( 34, 5, 1, true, false, 0 );
 		}
 
 		public static int EnhancePotions( Mobile m )
 		{
 			int EP = AosAttributes.GetValue( m, AosAttribute.EnhancePotions );
-			if ( Core.ML && EP > 50 )
+			int skillBonus = m.Skills.Alchemy.Fixed / 330 * 10;
+
+			if ( Core.ML && EP > 50 && m.AccessLevel <= AccessLevel.Player )
 				EP = 50;
-			return EP;
+
+			return ( EP + skillBonus );
 		}
 
 		public static TimeSpan Scale( Mobile m, TimeSpan v )
@@ -188,6 +239,9 @@ namespace Server.Items
 
 				if ( pack != null )
 				{
+					if ( (int) PotionEffect >= (int) PotionEffect.Invisibility )
+						return 1;
+
 					List<PotionKeg> kegs = pack.FindItemsByType<PotionKeg>();
 
 					for ( int i = 0; i < kegs.Count; ++i )

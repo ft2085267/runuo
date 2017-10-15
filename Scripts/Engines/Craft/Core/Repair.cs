@@ -101,12 +101,15 @@ namespace Server.Engines.Craft
 
 			private bool IsSpecialClothing( BaseClothing clothing )
 			{
-				// Armor repairable but not craftable
+				// Clothing repairable but not craftable
 
-				if( m_CraftSystem is DefTailoring )
+				if ( m_CraftSystem is DefTailoring )
 				{
-					return (clothing is BearMask)
-						|| (clothing is DeerMask);
+					return ( clothing is BearMask )
+						|| ( clothing is DeerMask )
+						|| ( clothing is TheMostKnowledgePerson )
+						|| ( clothing is TheRobeOfBritanniaAri )
+						|| ( clothing is EmbroideredOakLeafCloak );
 				}
 
 				return false;
@@ -128,12 +131,78 @@ namespace Server.Engines.Craft
 				{
 					return ( weapon is Club )
 						|| ( weapon is BlackStaff )
-						|| ( weapon is MagicWand );
+						|| ( weapon is MagicWand )
+					#region Temporary
+					// TODO: Make these items craftable
+						|| ( weapon is WildStaff );
+					#endregion
 				}
 				else if ( m_CraftSystem is DefBlacksmithy )
 				{
-					return ( weapon is Pitchfork );
+					return ( weapon is Pitchfork )
+					#region Temporary
+					// TODO: Make these items craftable
+						|| ( weapon is RadiantScimitar )
+						|| ( weapon is WarCleaver )
+						|| ( weapon is ElvenSpellblade )
+						|| ( weapon is AssassinSpike )
+						|| ( weapon is Leafblade )
+						|| ( weapon is RuneBlade )
+						|| ( weapon is ElvenMachete )
+						|| ( weapon is OrnateAxe )
+						|| ( weapon is DiamondMace );
+					#endregion
 				}
+				#region Temporary
+				// TODO: Make these items craftable
+				else if ( m_CraftSystem is DefBowFletching )
+				{
+					return ( weapon is ElvenCompositeLongbow )
+						|| ( weapon is MagicalShortbow );
+				}
+				#endregion
+
+				return false;
+			}
+
+			private bool IsSpecialArmor( BaseArmor armor )
+			{
+				// Armor repairable but not craftable
+
+				#region Temporary
+				// TODO: Make these items craftable
+				if ( m_CraftSystem is DefTailoring )
+				{
+					return ( armor is LeafTonlet )
+						|| ( armor is LeafArms )
+						|| ( armor is LeafChest )
+						|| ( armor is LeafGloves )
+						|| ( armor is LeafGorget )
+						|| ( armor is LeafLegs )
+						|| ( armor is HideChest )
+						|| ( armor is HideGloves )
+						|| ( armor is HideGorget )
+						|| ( armor is HidePants )
+						|| ( armor is HidePauldrons );
+				}
+				else if ( m_CraftSystem is DefCarpentry )
+				{
+					return ( armor is WingedHelm )
+						|| ( armor is RavenHelm )
+						|| ( armor is VultureHelm )
+						|| ( armor is WoodlandArms )
+						|| ( armor is WoodlandChest )
+						|| ( armor is WoodlandGloves )
+						|| ( armor is WoodlandGorget )
+						|| ( armor is WoodlandLegs );
+				}
+				else if ( m_CraftSystem is DefBlacksmithy )
+				{
+					return ( armor is Circlet )
+						|| ( armor is RoyalCirclet )
+						|| ( armor is GemmedCirclet );
+				}
+				#endregion
 
 				return false;
 			}
@@ -145,13 +214,16 @@ namespace Server.Engines.Craft
 				if( !CheckDeed( from ) )
 					return;
 
-
 				bool usingDeed = (m_Deed != null);
 				bool toDelete = false;
 
-				//TODO: Make a IRepairable
+				// TODO: Make an IRepairable
 
-				if ( m_CraftSystem is DefTinkering && targeted is Golem )
+				if ( m_CraftSystem.CanCraft( from, m_Tool, targeted.GetType() ) == 1044267 )
+				{
+					number = 1044282; // You must be near a forge and and anvil to repair items. * Yes, there are two and's *
+				}
+				else if ( m_CraftSystem is DefTinkering && targeted is Golem )
 				{
 					Golem g = (Golem)targeted;
 					int damage = g.HitsMax - g.Hits;
@@ -240,9 +312,13 @@ namespace Server.Engines.Craft
 					{
 						number = (usingDeed)? 1061136 : 1044277; // That item cannot be repaired. // You cannot repair that item with this type of repair contract.
 					}
-					else if ( !weapon.IsChildOf( from.Backpack ) )
+					else if ( !weapon.IsChildOf( from.Backpack ) && ( !Core.ML || weapon.Parent != from ) )
 					{
 						number = 1044275; // The item must be in your backpack to repair it.
+					}
+					else if ( !Core.AOS && weapon.PoisonCharges != 0 )
+					{
+						number = 1005012; // You cannot repair an item while a caustic substance is on it.
 					}
 					else if ( weapon.MaxHitPoints <= 0 || weapon.HitPoints == weapon.MaxHitPoints )
 					{
@@ -297,11 +373,11 @@ namespace Server.Engines.Craft
 							toWeaken = 3;
 					}
 
-					if ( m_CraftSystem.CraftItems.SearchForSubclass( armor.GetType() ) == null )
+					if ( m_CraftSystem.CraftItems.SearchForSubclass( armor.GetType() ) == null && !IsSpecialArmor( armor ) )
 					{
 						number = (usingDeed)? 1061136 : 1044277; // That item cannot be repaired. // You cannot repair that item with this type of repair contract.
 					}
-					else if ( !armor.IsChildOf( from.Backpack ) )
+					else if ( !armor.IsChildOf( from.Backpack ) && ( !Core.ML || armor.Parent != from ) )
 					{
 						number = 1044275; // The item must be in your backpack to repair it.
 					}
@@ -362,7 +438,7 @@ namespace Server.Engines.Craft
  					{
 						number = (usingDeed) ? 1061136 : 1044277; // That item cannot be repaired. // You cannot repair that item with this type of repair contract.
 					}
-					else if ( !clothing.IsChildOf( from.Backpack ) )
+					else if ( !clothing.IsChildOf( from.Backpack ) && ( !Core.ML || clothing.Parent != from ) )
 					{
 						number = 1044275; // The item must be in your backpack to repair it.
 					}
@@ -426,9 +502,12 @@ namespace Server.Engines.Craft
 					CraftContext context = m_CraftSystem.GetContext( from );
 					from.SendGump( new CraftGump( from, m_CraftSystem, m_Tool, number ) );
 				}
-				else if( toDelete )
+				else
 				{
-					m_Deed.Delete();
+					from.SendLocalizedMessage( number );
+
+					if( toDelete )
+						m_Deed.Delete();
 				}
 			}
 		}

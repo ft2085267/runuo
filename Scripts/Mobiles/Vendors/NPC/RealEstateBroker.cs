@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Items;
 using Server.Multis;
@@ -11,8 +11,8 @@ namespace Server.Mobiles
 {
 	public class RealEstateBroker : BaseVendor
 	{
-		private ArrayList m_SBInfos = new ArrayList();
-		protected override ArrayList SBInfos{ get { return m_SBInfos; } }
+		private List<SBInfo> m_SBInfos = new List<SBInfo>();
+		protected override List<SBInfo> SBInfos{ get { return m_SBInfos; } }
 
 		[Constructable]
 		public RealEstateBroker() : base( "the real estate broker" )
@@ -31,13 +31,13 @@ namespace Server.Mobiles
 
 		public override void OnMovement( Mobile m, Point3D oldLocation )
 		{
-			if ( DateTime.Now > m_NextCheckPack && InRange( m, 4 ) && !InRange( oldLocation, 4 ) && m.Player )
+			if ( DateTime.UtcNow > m_NextCheckPack && InRange( m, 4 ) && !InRange( oldLocation, 4 ) && m.Player )
 			{
 				Container pack = m.Backpack;
 
 				if ( pack != null )
 				{
-					m_NextCheckPack = DateTime.Now + TimeSpan.FromSeconds( 2.0 );
+					m_NextCheckPack = DateTime.UtcNow + TimeSpan.FromSeconds( 2.0 );
 
 					Item deed = pack.FindItemByType( typeof( HouseDeed ), false );
 

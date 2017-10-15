@@ -14,6 +14,7 @@ namespace Server.Items
 		public override int AosMinDamage{ get{ return 13; } }
 		public override int AosMaxDamage{ get{ return 15; } }
 		public override int AosSpeed{ get{ return 42; } }
+		public override float MlSpeed{ get{ return 2.75f; } }
 
 		public override int OldStrengthReq{ get{ return 20; } }
 		public override int OldMinDamage{ get{ return 13; } }
@@ -21,6 +22,7 @@ namespace Server.Items
 		public override int OldSpeed{ get{ return 42; } }
 
 		public override int DefMissSound{ get{ return 0x239; } }
+		public override SkillName DefSkill { get { return SkillName.Fencing; } }
 
 		public override int InitMinHits{ get{ return 30; } } // TODO
 		public override int InitMaxHits{ get{ return 60; } } // TODO

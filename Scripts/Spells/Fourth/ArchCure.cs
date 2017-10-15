@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Server.Network;
 using Server.Items;
 using Server.Targeting;
+using Server.Mobiles;
 
 namespace Server.Spells.Fourth
 {
@@ -28,7 +29,7 @@ namespace Server.Spells.Fourth
 			Caster.Target = new InternalTarget( this );
 		}
 
-		// Archcure is now 1/4th of a second faster
+		// Arch cure is now 1/4th of a second faster
 		public override TimeSpan CastDelayBase{ get{ return base.CastDelayBase - TimeSpan.FromSeconds( 0.25 ); } }
 
 		public void Target( IPoint3D p )
@@ -46,15 +47,24 @@ namespace Server.Spells.Fourth
 				List<Mobile> targets = new List<Mobile>();
 
 				Map map = Caster.Map;
+				Mobile directTarget = p as Mobile;
 
 				if ( map != null )
 				{
+					bool feluccaRules = ( map.Rules == MapRules.FeluccaRules );
+
+					// You can target any living mobile directly, beneficial checks apply
+					if ( directTarget != null && Caster.CanBeBeneficial( directTarget, false ) )
+						targets.Add( directTarget );
+
 					IPooledEnumerable eable = map.GetMobilesInRange( new Point3D( p ), 2 );
 
 					foreach ( Mobile m in eable )
 					{
-						// Archcure doesn't cure aggressors or victims 
-						if ( Caster.CanBeBeneficial( m, false ) && (!Core.AOS || !IsAggressor( m ) && !IsAggressed( m )) )
+						if ( m == directTarget )
+							continue;
+
+						if ( AreaCanTarget( m, feluccaRules ) )
 							targets.Add( m );
 					}
 
@@ -97,6 +107,31 @@ namespace Server.Spells.Fourth
 			FinishSequence();
 		}
 
+		private bool AreaCanTarget( Mobile target, bool feluccaRules )
+		{
+			/* Arch cure area effect won't cure aggressors, victims, murderers, criminals or monsters.
+			 * In Felucca, it will also not cure summons and pets.
+			 * For red players it will only cure themselves and guild members.
+			 */
+
+			if ( !Caster.CanBeBeneficial( target, false ) )
+				return false;
+
+			if ( Core.AOS && target != Caster )
+			{
+				if ( IsAggressor( target ) || IsAggressed( target ) )
+					return false;
+
+				if ( ( !IsInnocentTo( Caster, target ) || !IsInnocentTo( target, Caster ) ) && !IsAllyTo( Caster, target ) )
+					return false;
+
+				if ( feluccaRules && !( target is PlayerMobile ) )
+					return false;
+			}
+
+			return true;
+		}
+
 		private bool IsAggressor( Mobile m )
 		{
 			foreach ( AggressorInfo info in Caster.Aggressors )
@@ -117,6 +152,16 @@ namespace Server.Spells.Fourth
 			}
 
 			return false;
+		}
+
+		private static bool IsInnocentTo( Mobile from, Mobile to )
+		{
+			return ( Notoriety.Compute( from, (Mobile)to ) == Notoriety.Innocent );
+		}
+
+		private static bool IsAllyTo( Mobile from, Mobile to )
+		{
+			return ( Notoriety.Compute( from, (Mobile)to ) == Notoriety.Ally );
 		}
 
 		private class InternalTarget : Target

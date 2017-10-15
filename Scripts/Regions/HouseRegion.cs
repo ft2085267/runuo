@@ -38,6 +38,11 @@ namespace Server.Regions
 			this.GoLocation = new Point3D( house.X + ban.X, house.Y + ban.Y, house.Z + ban.Z );
 		}
 
+		public override bool AllowHousing( Mobile from, Point3D p )
+		{
+			return false;
+		}
+
 		private static Rectangle3D[] GetArea( BaseHouse house )
 		{
 			int x = house.X;
@@ -138,6 +143,10 @@ namespace Server.Regions
 			if ( from is BaseCreature && ((BaseCreature)from).NoHouseRestrictions )
 			{
 			}
+			else if ( from is BaseCreature && !((BaseCreature)from).Controlled ) // Untamed creatures cannot enter public houses
+			{
+				return false;
+			}
 			else if ( from is BaseCreature && ((BaseCreature)from).IsHouseSummonable && !(BaseCreature.Summoning || m_House.IsInside( oldLocation, 16 )) )
 			{
 				return false;
@@ -207,7 +216,7 @@ namespace Server.Regions
 				{
 					AggressorInfo info = m.Aggressed[i];
 
-					if ( info.Defender.Player && (DateTime.Now - info.LastCombatTime) < CombatHeatDelay )
+					if ( info.Defender.Player && (DateTime.UtcNow - info.LastCombatTime) < CombatHeatDelay )
 						return base.GetLogoutDelay( m );
 				}
 
@@ -222,9 +231,7 @@ namespace Server.Regions
 			base.OnSpeech( e );
 
 			Mobile from = e.Mobile;
-
-			if ( !from.Alive || !m_House.IsInside( from ) || !m_House.IsActive )
-				return;
+			Item sign = m_House.Sign;
 
 			bool isOwner = m_House.IsOwner( from );
 			bool isCoOwner = isOwner || m_House.IsCoOwner( from );
@@ -233,7 +240,34 @@ namespace Server.Regions
 			if ( !isFriend )
 				return;
 
-			if ( e.HasKeyword( 0x33 ) ) // remove thyself
+			if ( !from.Alive )
+				return;
+
+			if ( Core.ML && Insensitive.Equals( e.Speech, "I wish to resize my house" ) )
+			{
+				if ( from.Map != sign.Map || !from.InRange( sign, 0 ) )
+				{
+				    from.SendLocalizedMessage( 500295 ); // you are too far away to do that.
+				}
+				else if ( DateTime.UtcNow  <= m_House.BuiltOn.AddHours ( 1 ) )
+				{
+					from.SendLocalizedMessage( 1080178 ); // You must wait one hour between each house demolition.
+				}
+				else if ( isOwner )
+				{
+					from.CloseGump( typeof( ConfirmHouseResize ) );
+					from.CloseGump( typeof( HouseGumpAOS ) );
+					from.SendGump( new ConfirmHouseResize( from, m_House ) );	
+				}
+				else
+				{
+					from.SendLocalizedMessage( 501320 ); // Only the house owner may do this.
+				}
+			}
+
+			if ( !m_House.IsInside( from ) || !m_House.IsActive )
+				return;
+			else if ( e.HasKeyword( 0x33 ) ) // remove thyself
 			{
 				if ( isFriend )
 				{
@@ -336,7 +370,7 @@ namespace Server.Regions
 					from.SendLocalizedMessage( 502094 ); // You must be in your house to do this.
 				}
 			}
-			else if ( e.HasKeyword( 0x28 ) )
+			else if ( e.HasKeyword( 0x28 ) ) // trash barrel
 			{
 				if ( isCoOwner )
 				{

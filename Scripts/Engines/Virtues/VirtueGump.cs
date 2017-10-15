@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Gumps;
 using Server.Mobiles;
@@ -11,7 +11,7 @@ namespace Server
 
 	public class VirtueGump : Gump
 	{
-		private static Hashtable m_Callbacks = new Hashtable();
+		private static Dictionary<int, OnVirtueUsed> m_Callbacks = new Dictionary<int, OnVirtueUsed>();
 
 		public static void Initialize()
 		{
@@ -38,7 +38,9 @@ namespace Server
 				return;
 			}
 
-			OnVirtueUsed callback = (OnVirtueUsed)m_Callbacks[e.GumpID];
+			OnVirtueUsed callback = null;
+			
+			m_Callbacks.TryGetValue(e.GumpID, out callback);
 
 			if ( callback != null )
 				callback( e.Beholder );
@@ -136,20 +138,22 @@ namespace Server
 			if( value >= 30000 )
 				value = 20000;	//Sanity
 				
-			/*
+			
 			int vl;
 			
-			vl = (value/10000)
-
 			if( value < 10000 )
 				vl = 0;
-			else if( value > 20000 )
+			else if( value >= 20000 && index == 5)
+ 				vl = 2;
+			else if( value >= 21000 && index != 1)
+				vl = 2;
+			else if( value >= 22000 && index == 1)
 				vl = 2;
 			else
 				vl = 1;
-			*/
+			
 
-			return m_Table[(index * 3) + (int)(value/10000)];
+			return m_Table[(index * 3) + (int) vl];
 		}
 
 		private class InternalEntry : GumpImage

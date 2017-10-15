@@ -11,7 +11,7 @@ namespace Server.Mobiles
 	public class MeerEternal : BaseCreature
 	{
 		[Constructable]
-		public MeerEternal() : base( AIType.AI_Mage, FightMode.Aggressor, 10, 1, 0.2, 0.4 )
+		public MeerEternal() : base( AIType.AI_Mage, FightMode.Evil, 10, 1, 0.2, 0.4 )
 		{
 			Name = "a meer eternal";
 			Body = 772;
@@ -44,7 +44,7 @@ namespace Server.Mobiles
 
 			VirtualArmor = 34;
 
-			m_NextAbilityTime = DateTime.Now + TimeSpan.FromSeconds( Utility.RandomMinMax( 2, 5 ) );
+			m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds( Utility.RandomMinMax( 2, 5 ) );
 		}
 
 		public override void GenerateLoot()
@@ -174,13 +174,13 @@ namespace Server.Mobiles
 
 		public override void OnThink()
 		{
-			if ( DateTime.Now >= m_NextAbilityTime )
+			if ( DateTime.UtcNow >= m_NextAbilityTime )
 			{
 				Mobile combatant = this.Combatant;
 
 				if ( combatant != null && combatant.Map == this.Map && combatant.InRange( this, 12 ) )
 				{
-					m_NextAbilityTime = DateTime.Now + TimeSpan.FromSeconds( Utility.RandomMinMax( 10, 15 ) );
+					m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds( Utility.RandomMinMax( 10, 15 ) );
 
 					int ability = Utility.Random( 4 );
 

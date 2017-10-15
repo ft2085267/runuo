@@ -17,14 +17,15 @@ namespace Server.Commands.Generic
 		Self		= 0x0020,
 		Region		= 0x0040,
 		Contained	= 0x0080,
+		IPAddress	= 0x0100,
 
-		All			= Single | Global | Online | Multi | Area | Self | Region | Contained,
+		All			= Single | Global | Online | Multi | Area | Self | Region | Contained | IPAddress,
 		AllMobiles	= All & ~Contained,
-		AllNPCs		= All & ~(Online | Self | Contained),
-		AllItems	= All & ~(Online | Self | Region),
+		AllNPCs		= All & ~(IPAddress | Online | Self | Contained),
+		AllItems	= All & ~(IPAddress | Online | Self | Region),
 
 		Simple		= Single | Multi,
-		Complex		= Global | Online | Area | Region | Contained
+		Complex		= Global | Online | Area | Region | Contained | IPAddress
 	}
 
 	public abstract class BaseCommandImplementor
@@ -40,6 +41,11 @@ namespace Server.Commands.Generic
 			Register( new AreaCommandImplementor() );
 			Register( new SelfCommandImplementor() );
 			Register( new ContainedCommandImplementor() );
+			Register( new IPAddressCommandImplementor() );
+
+			Register( new RangeCommandImplementor() );
+			Register( new ScreenCommandImplementor() );
+			Register( new FacetCommandImplementor() );
 		}
 
 		private string[] m_Accessors;
@@ -107,7 +113,7 @@ namespace Server.Commands.Generic
 				m_Commands[command.Commands[i]] = command;
 		}
 
-		public bool CheckObjectTypes( BaseCommand command, Extensions ext, out bool items, out bool mobiles )
+		public bool CheckObjectTypes( Mobile from, BaseCommand command, Extensions ext, out bool items, out bool mobiles )
 		{
 			items = mobiles = false;
 
@@ -147,7 +153,7 @@ namespace Server.Commands.Generic
 					}
 					else if ( condIsMobile )
 					{
-						command.LogFailure( "You may not use a mobile type condition for this command." );
+						from.SendMessage( "You may not use a mobile type condition for this command." );
 						return false;
 					}
 
@@ -161,7 +167,7 @@ namespace Server.Commands.Generic
 					}
 					else if ( condIsItem )
 					{
-						command.LogFailure( "You may not use an item type condition for this command." );
+						from.SendMessage( "You may not use an item type condition for this command." );
 						return false;
 					}
 

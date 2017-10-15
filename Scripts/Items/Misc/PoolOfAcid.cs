@@ -32,7 +32,7 @@ namespace Server.Items
 
 			m_MinDamage = minDamage;
 			m_MaxDamage = maxDamage;
-			m_Created = DateTime.Now;
+			m_Created = DateTime.UtcNow;
 			m_Duration = duration;
 
 			m_Timer = Timer.DelayCall( TimeSpan.Zero, TimeSpan.FromSeconds( 1 ), new TimerCallback( OnTick ) );
@@ -46,27 +46,32 @@ namespace Server.Items
 
 		private void OnTick()
 		{
-			DateTime now = DateTime.Now;
+			DateTime now = DateTime.UtcNow;
 			TimeSpan age = now - m_Created;
 
-			if( age > m_Duration )
+			if( age > m_Duration ) {
 				Delete();
-			else
-			{
+			} else {
 				if( !m_Drying && age > (m_Duration - age) )
 				{
 					m_Drying = true;
 					ItemID = 0x122B;
 				}
+
+				List<Mobile> toDamage = new List<Mobile>();
+
 				foreach( Mobile m in GetMobilesInRange( 0 ) )
 				{
 					BaseCreature bc = m as BaseCreature;
 
 					if( m.Alive && !m.IsDeadBondedPet && (bc == null || bc.Controlled || bc.Summoned) )
 					{
-						Damage ( m );
+						toDamage.Add( m );
 					}
 				}
+
+				for ( int i = 0; i < toDamage.Count; i++ )
+					Damage( toDamage[i] );
 			}
 		}
 		public override bool OnMoveOver( Mobile m )

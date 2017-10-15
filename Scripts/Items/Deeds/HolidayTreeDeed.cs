@@ -51,7 +51,7 @@ namespace Server.Items
 				return false;
 			}
 
-			if ( DateTime.Now.Month != 12 )
+			if ( DateTime.UtcNow.Month != 12 )
 			{
 				from.SendLocalizedMessage( 1005700 ); // You will have to wait till next December to put your tree back up for display.
 				return false;
@@ -94,10 +94,10 @@ namespace Server.Items
 			Point3D loc = new Point3D( p );
 
 			if ( p is StaticTarget )
-				loc.Z -= TileData.ItemTable[((StaticTarget)p).ItemID & 0x3FFF].CalcHeight; /* NOTE: OSI does not properly normalize Z positioning here.
-																							* A side affect is that you can only place on floors (due to the CanFit call).
-																							* That functionality may be desired. And so, it's included in this script.
-																							*/
+				loc.Z -= TileData.ItemTable[((StaticTarget)p).ItemID].CalcHeight;	/* NOTE: OSI does not properly normalize Z positioning here.
+													* A side affect is that you can only place on floors (due to the CanFit call).
+													* That functionality may be desired. And so, it's included in this script.
+													*/
 
 			if ( ValidatePlacement( from, loc ) )
 				EndPlace( from, (HolidayTreeType) state, loc );

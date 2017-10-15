@@ -78,6 +78,9 @@ namespace Server.Commands
 
 		public Item Construct()
 		{
+			if ( m_Type == null )
+				return null;
+
 			Item item;
 
 			try
@@ -448,7 +451,7 @@ namespace Server.Commands
 						int indexOf = m_Params[i].IndexOf( '=' );
 
 						if ( indexOf >= 0 )
-							sp.CreaturesName.Add( m_Params[i].Substring( ++indexOf ) );
+							sp.SpawnNames.Add( m_Params[i].Substring( ++indexOf ) );
 					}
 					else if ( m_Params[i].StartsWith( "MinDelay" ) )
 					{
@@ -562,7 +565,7 @@ namespace Server.Commands
 						int indexOf = m_Params[i].IndexOf( '=' );
 
 						if ( indexOf >= 0 )
-							tp.Required = Utility.ToInt32( m_Params[i].Substring( ++indexOf ) ) * 0.01;
+							tp.Required = Utility.ToInt32( m_Params[i].Substring( ++indexOf ) ) * 0.1;
 					}
 					else if ( m_Params[i].StartsWith( "Required" ) )
 					{
@@ -898,7 +901,7 @@ namespace Server.Commands
 						m_DeleteQueue.Enqueue( item );
 				}
 			}
-			else if ( (TileData.ItemTable[itemID & 0x3FFF].Flags & TileFlag.LightSource) != 0 )
+			else if ( (TileData.ItemTable[itemID & TileData.MaxItemValue].Flags & TileFlag.LightSource) != 0 )
 			{
 				eable = map.GetItemsInRange( new Point3D( x, y, z ), 0 );
 

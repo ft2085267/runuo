@@ -66,7 +66,7 @@ namespace Server.Spells.Necromancy
 					{
 						t.Delay += TimeSpan.FromSeconds( 2.0 );
 
-						buffTime = t.Next - DateTime.Now;
+						buffTime = t.Next - DateTime.UtcNow;
 					}
 				}
 				else
@@ -82,6 +82,7 @@ namespace Server.Spells.Necromancy
 				Misc.WeightOverloading.DFA = Misc.DFAlgorithm.Standard;
 
 				//SpellHelper.Damage( this, m, damage, 100, 0, 0, 0, 0, Misc.DFAlgorithm.PainSpike );
+				HarmfulSpell( m );
 			}
 
 			FinishSequence();

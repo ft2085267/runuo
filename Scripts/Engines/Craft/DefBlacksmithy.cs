@@ -92,11 +92,11 @@ namespace Server.Engines.Craft
 			{
 				for ( int y = -range; (!anvil || !forge) && y <= range; ++y )
 				{
-					Tile[] tiles = map.Tiles.GetStaticTiles( from.X+x, from.Y+y, true );
+					StaticTile[] tiles = map.Tiles.GetStaticTiles( from.X+x, from.Y+y, true );
 
 					for ( int i = 0; (!anvil || !forge) && i < tiles.Length; ++i )
 					{
-						int id = tiles[i].ID & 0x3FFF;
+						int id = tiles[i].ID;
 
 						bool isAnvil = ( id == 4015 || id == 4016 || id == 0x2DD5 || id == 0x2DD6 );
 						bool isForge = ( id == 4017 || (id >= 6522 && id <= 6569) || id == 0x2DD8 );
@@ -187,18 +187,18 @@ namespace Server.Engines.Craft
 		{
 			/*
 			Synthax for a SIMPLE craft item
-			AddCraft( ObjectType, Group, MinSkill, MaxSkill, RessourceType, Amount, Message )
+			AddCraft( ObjectType, Group, MinSkill, MaxSkill, ResourceType, Amount, Message )
 			
 			ObjectType		: The type of the object you want to add to the build list.
 			Group			: The group in wich the object will be showed in the craft menu.
 			MinSkill		: The minimum of skill value
 			MaxSkill		: The maximum of skill value
-			RessourceType	: The type of the ressource the mobile need to create the item
-			Amount			: The amount of the RessourceType it need to create the item
-			Message			: String or Int for Localized.  The message that will be sent to the mobile, if the specified ressource is missing.
+			ResourceType	: The type of the resource the mobile need to create the item
+			Amount			: The amount of the ResourceType it need to create the item
+			Message			: String or Int for Localized.  The message that will be sent to the mobile, if the specified resource is missing.
 			
 			Synthax for a COMPLEXE craft item.  A complexe item is an item that need either more than
-			only one skill, or more than only one ressource.
+			only one skill, or more than only one resource.
 			
 			Coming soon....
 			*/
@@ -231,7 +231,6 @@ namespace Server.Engines.Craft
 
 			if( Core.SE )
 			{
-				
 				index = AddCraft( typeof( PlateMempo ), 1011078, 1030180, 80.0, 130.0, typeof( IronIngot ), 1044036, 18, 1044037 );
 				SetNeededExpansion( index, Expansion.SE );
 
@@ -256,7 +255,7 @@ namespace Server.Engines.Craft
 			AddCraft( typeof( Helmet ), 1011079, 1025130, 37.9, 87.9, typeof( IronIngot ), 1044036, 15, 1044037 );
 			AddCraft( typeof( NorseHelm ), 1011079, 1025134, 37.9, 87.9, typeof( IronIngot ), 1044036, 15, 1044037 );
 			AddCraft( typeof( PlateHelm ), 1011079, 1025138, 62.6, 112.6, typeof( IronIngot ), 1044036, 15, 1044037 );
-			
+
 			if( Core.SE )
 			{
 				index = AddCraft( typeof( ChainHatsuburi ), 1011079, 1030175, 30.0, 80.0, typeof( IronIngot ), 1044036, 20, 1044037 );
@@ -282,7 +281,7 @@ namespace Server.Engines.Craft
 
 				index = AddCraft( typeof( StandardPlateKabuto ), 1011079, 1030196, 90.0, 140.0, typeof( IronIngot ), 1044036, 25, 1044037 );
 				SetNeededExpansion( index, Expansion.SE );
-				/*
+
 				if( Core.ML )
 				{
 					index = AddCraft( typeof( Circlet ), 1011079, 1032645, 62.1, 112.1, typeof( IronIngot ), 1044036, 6, 1044037 );
@@ -297,7 +296,6 @@ namespace Server.Engines.Craft
 					AddRes( index, typeof( BlueDiamond ), 1032696, 1, 1044240 );
 					SetNeededExpansion( index, Expansion.ML );
 				}
-				 * */
 			}
 			#endregion
 
@@ -352,7 +350,7 @@ namespace Server.Engines.Craft
 				SetNeededExpansion( index, Expansion.SE );
 				index = AddCraft( typeof( Sai ), 1011081, 1030234, 50.0, 100.0, typeof( IronIngot ), 1044036, 12, 1044037 );
 				SetNeededExpansion( index, Expansion.SE );
-				/*
+
 				if( Core.ML )
 				{
 					index = AddCraft( typeof( RadiantScimitar ), 1011081, 1031571, 75.0, 125.0, typeof( IronIngot ), 1044036, 15, 1044037 );
@@ -380,7 +378,7 @@ namespace Server.Engines.Craft
 					AddRes( index, typeof( DreadHornMane ), 1032682, 1, 1053098 );
 					AddRes( index, typeof( Putrefication ), 1032678, 10, 1053098 );
 					AddRes( index, typeof( Muculent ), 1032680, 10, 1053098 );
-					AddRecipe( index, 0 );
+					AddRareRecipe( index, 0 );
 					ForceNonExceptional( index );
 					SetNeededExpansion( index, Expansion.ML );
 
@@ -388,7 +386,7 @@ namespace Server.Engines.Craft
 					AddRes( index, typeof( GrizzledBones ), 1032684, 1, 1053098 );
 					AddRes( index, typeof( Taint ), 1032684, 10, 1053098 );
 					AddRes( index, typeof( Blight ), 1032675, 10, 1053098 );
-					AddRecipe( index, 1 );
+					AddRareRecipe( index, 1 );
 					ForceNonExceptional( index );
 					SetNeededExpansion( index, Expansion.ML );
 
@@ -396,7 +394,7 @@ namespace Server.Engines.Craft
 					AddRes( index, typeof( GrizzledBones ), 1032684, 1, 1053098 );
 					AddRes( index, typeof( Blight ), 1032675, 10, 1053098 );
 					AddRes( index, typeof( Scourge ), 1032677, 10, 1053098 );
-					AddRecipe( index, 2 );
+					AddRareRecipe( index, 2 );
 					ForceNonExceptional( index );
 					SetNeededExpansion( index, Expansion.ML );
 
@@ -404,7 +402,7 @@ namespace Server.Engines.Craft
 					AddRes( index, typeof( GrizzledBones ), 1032684, 1, 1053098 );
 					AddRes( index, typeof( Corruption ), 1032676, 10, 1053098 );
 					AddRes( index, typeof( Putrefication ), 1032678, 10, 1053098 );
-					AddRecipe( index, 3 );
+					AddRareRecipe( index, 3 );
 					ForceNonExceptional( index );
 					SetNeededExpansion( index, Expansion.ML );
 
@@ -473,6 +471,7 @@ namespace Server.Engines.Craft
 					AddRecipe( index, 16 );
 					SetNeededExpansion( index, Expansion.ML );
 
+					// TODO
 					index = AddCraft( typeof( ButchersWarCleaver ), 1011081, 1073526, 75.0, 125.0, typeof( IronIngot ), 1044036, 18, 1044037 );
 					AddRes( index, typeof( Turquoise ), 1032691, 1, 1044240 );
 					AddRecipe( index, 17 );
@@ -508,7 +507,8 @@ namespace Server.Engines.Craft
 					AddRecipe( index, 23 );
 					SetNeededExpansion( index, Expansion.ML );
 
-					index = AddCraft( typeof( RuneSabre ), 1011081, 1073537, 75.0, 125.0, typeof( IronIngot ), 1044036, 15, 1044037 );
+					// TODO
+					index = AddCraft( typeof( Runesabre ), 1011081, 1073537, 75.0, 125.0, typeof( IronIngot ), 1044036, 15, 1044037 );
 					AddRes( index, typeof( Turquoise ), 1032691, 1, 1044240 );
 					AddRecipe( index, 24 );
 					SetNeededExpansion( index, Expansion.ML );
@@ -548,12 +548,11 @@ namespace Server.Engines.Craft
 					AddRecipe( index, 31 );
 					SetNeededExpansion( index, Expansion.ML );
 
-					index = AddCraft( typeof( BoneMachete ), 1011081, 1020526, 75.0, 125.0, typeof( IronIngot ), 1044036, 20, 1044037 );
+					index = AddCraft( typeof( BoneMachete ), 1011081, 1020526, 45.0, 95.0, typeof( IronIngot ), 1044036, 20, 1044037 );
 					AddRes( index, typeof( Bone ), 1049064, 6, 1049063 );
-					AddRecipe( index, 32 );
+					AddQuestRecipe( index, 32 );
 					SetNeededExpansion( index, Expansion.ML );
 				}
-				*/
 			}
 			#endregion
 
@@ -565,7 +564,7 @@ namespace Server.Engines.Craft
 			AddCraft( typeof( LargeBattleAxe ), 1011082, 1025115, 28.0, 78.0, typeof( IronIngot ), 1044036, 12, 1044037 );
 			AddCraft( typeof( TwoHandedAxe ), 1011082, 1025187, 33.0, 83.0, typeof( IronIngot ), 1044036, 16, 1044037 );
 			AddCraft( typeof( WarAxe ), 1011082, 1025040, 39.1, 89.1, typeof( IronIngot ), 1044036, 16, 1044037 );
-			/*
+
 			if( Core.ML )
 			{
 				index = AddCraft( typeof( OrnateAxe ), 1011082, 1031572, 70.0, 120.0, typeof( IronIngot ), 1044036, 18, 1044037 );
@@ -591,7 +590,7 @@ namespace Server.Engines.Craft
 				AddRecipe( index, 36 );
 				SetNeededExpansion( index, Expansion.ML );
 			 
-			}*/
+			}
 			#endregion
 
 			#region Pole Arms
@@ -642,17 +641,17 @@ namespace Server.Engines.Craft
 				AddRes( index, typeof( Cloth ), 1044286, 10, 1044287 );
 				SetNeededExpansion( index, Expansion.SE );
 			}
-			/*
+
 			if( Core.ML )
 			{
-				index = AddCraft( typeof( DiamondMace ), 1011084, 1073568, 70.0, 120.0, typeof( IronIngot ), 1044036, 20, 1044037 );
+				index = AddCraft( typeof( DiamondMace ), 1011084, 1031556, 70.0, 120.0, typeof( IronIngot ), 1044036, 20, 1044037 );
 				SetNeededExpansion( index, Expansion.ML );
 
 				index = AddCraft( typeof( ShardThrasher ), 1011084, 1072918, 70.0, 120.0, typeof( IronIngot ), 1044036, 20, 1044037 );
 				AddRes( index, typeof( EyeOfTheTravesty ), 1073126, 1, 1042081 );
 				AddRes( index, typeof( Muculent ), 1072139, 10, 1042081 );
 				AddRes( index, typeof( Corruption ), 1072135, 10, 1042081 );
-				AddRecipe( index, 37 );
+				AddRareRecipe( index, 37 );
 				ForceNonExceptional( index );
 				SetNeededExpansion( index, Expansion.ML );
 
@@ -675,7 +674,7 @@ namespace Server.Engines.Craft
 				AddRes( index, typeof( BlueDiamond ), 1032696, 1, 1044240 );
 				AddRecipe( index, 41 );
 				SetNeededExpansion( index, Expansion.ML );
-			}*/
+			}
 			#endregion
 
 			#region Dragon Scale Armor

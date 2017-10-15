@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Server;
 using Server.Gumps;
+using Server.Misc;
 using Server.Multis;
 using Server.ContextMenus;
 using Server.Prompts;
@@ -68,7 +69,7 @@ namespace Server.Mobiles
 
 			m_RentalGold = rentalGold;
 
-			m_RentalExpireTime = DateTime.Now + duration.Duration;
+			m_RentalExpireTime = DateTime.UtcNow + duration.Duration;
 			m_RentalExpireTimer = new RentalExpireTimer( this, duration.Duration );
 			m_RentalExpireTimer.Start();
 		}
@@ -131,7 +132,7 @@ namespace Server.Mobiles
 
 		public override bool IsOwner( Mobile m )
 		{
-			return m == Owner || m.AccessLevel >= AccessLevel.GameMaster;
+			return m == Owner || m.AccessLevel >= AccessLevel.GameMaster || ( Core.ML && AccountHandler.CheckAccount( m, Owner ) );
 		}
 
 		[CommandProperty( AccessLevel.GameMaster )]
@@ -153,7 +154,7 @@ namespace Server.Mobiles
 
 		public void ComputeRentalExpireDelay( out int days, out int hours )
 		{
-			TimeSpan delay = RentalExpireTime - DateTime.Now;
+			TimeSpan delay = RentalExpireTime - DateTime.UtcNow;
 
 			if ( delay <= TimeSpan.Zero )
 			{
@@ -318,14 +319,9 @@ namespace Server.Mobiles
 				text = text.Trim();
 
 				int amount;
-				try
-				{
-					amount = Convert.ToInt32( text );
-				}
-				catch
-				{
-					amount = -1;
-				}
+
+                if ( !int.TryParse( text, out amount ) )
+                    amount = -1;
 
 				Mobile owner = m_Vendor.Owner;
 				if ( owner == null )
@@ -392,7 +388,7 @@ namespace Server.Mobiles
 
 			m_RentalExpireTime = reader.ReadDeltaTime();
 
-			TimeSpan delay = m_RentalExpireTime - DateTime.Now;
+			TimeSpan delay = m_RentalExpireTime - DateTime.UtcNow;
 			m_RentalExpireTimer = new RentalExpireTimer( this, delay > TimeSpan.Zero ? delay : TimeSpan.Zero );
 			m_RentalExpireTimer.Start();
 		}
@@ -419,7 +415,7 @@ namespace Server.Mobiles
 
 					m_Vendor.RentalPrice = renewalPrice;
 
-					m_Vendor.m_RentalExpireTime = DateTime.Now + m_Vendor.RentalDuration.Duration;
+					m_Vendor.m_RentalExpireTime = DateTime.UtcNow + m_Vendor.RentalDuration.Duration;
 				}
 				else
 				{

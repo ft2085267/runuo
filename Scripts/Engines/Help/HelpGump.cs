@@ -86,7 +86,7 @@ namespace Server.Engines.Help
 			{
 				AggressorInfo info = m.Aggressed[i];
 
-				if ( DateTime.Now - info.LastCombatTime < TimeSpan.FromSeconds( 30.0 ) )
+				if ( DateTime.UtcNow - info.LastCombatTime < TimeSpan.FromSeconds( 30.0 ) )
 					return true;
 			}
 
@@ -227,19 +227,19 @@ namespace Server.Engines.Help
 				{
 					BaseHouse house = BaseHouse.FindHouseAt( from );
 
-					if ( house != null && house.IsAosRules )
+					if ( house != null && house.IsAosRules && !from.Region.IsPartOf( typeof( Engines.ConPVP.SafeZone ) ) ) // Dueling
 					{
 						from.Location = house.BanLocation;
 					}
 					else if ( from.Region.IsPartOf( typeof( Server.Regions.Jail ) ) )
 					{
-						from.SendLocalizedMessage( 1041530, "", 0x35 ); // You'll need a better jailbreak plan then that!
+						from.SendLocalizedMessage( 1114345, "", 0x35 ); // You'll need a better jailbreak plan than that!
 					}
 					else if ( Factions.Sigil.ExistsOn( from ) )
 					{
 						from.SendLocalizedMessage( 1061632 ); // You can't do that while carrying the sigil.
 					}
-					else if ( from.CanUseStuckMenu() && from.Region.CanUseStuckMenu( from ) && !CheckCombat( from ) && !from.Frozen && !from.Criminal && (Core.AOS || from.Kills < 5) )
+					else if ( from is PlayerMobile && ((PlayerMobile)from).CanUseStuckMenu() && from.Region.CanUseStuckMenu( from ) && !CheckCombat( from ) && !from.Frozen && !from.Criminal && (Core.AOS || from.Kills < 5) )
 					{
 						StuckMenu menu = new StuckMenu( from, from, true );
 
@@ -290,7 +290,7 @@ namespace Server.Engines.Help
 					{
 						if ( from.Region.IsPartOf( typeof( Regions.Jail ) ) )
 						{
-							from.SendLocalizedMessage( 1041530, "", 0x35 ); // You'll need a better jailbreak plan then that!
+							from.SendLocalizedMessage( 1114345, "", 0x35 ); // You'll need a better jailbreak plan than that!
 						}
 						else if ( from.Region.IsPartOf( "Haven Island" ) )
 						{

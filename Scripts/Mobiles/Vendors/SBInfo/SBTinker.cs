@@ -1,12 +1,12 @@
 using System; 
-using System.Collections; 
+using System.Collections.Generic; 
 using Server.Items; 
 
 namespace Server.Mobiles 
 { 
 	public class SBTinker: SBInfo 
 	{ 
-		private ArrayList m_BuyInfo = new InternalBuyInfo(); 
+		private List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo(); 
 		private IShopSellInfo m_SellInfo = new InternalSellInfo(); 
 
 		public SBTinker() 
@@ -14,13 +14,12 @@ namespace Server.Mobiles
 		} 
 
 		public override IShopSellInfo SellInfo { get { return m_SellInfo; } } 
-		public override ArrayList BuyInfo { get { return m_BuyInfo; } } 
+		public override List<GenericBuyInfo> BuyInfo { get { return m_BuyInfo; } } 
 
-		public class InternalBuyInfo : ArrayList 
+		public class InternalBuyInfo : List<GenericBuyInfo> 
 		{ 
 			public InternalBuyInfo() 
 			{ 
-
 				Add( new GenericBuyInfo( typeof( Clock ), 22, 20, 0x104B, 0 ) );
 				Add( new GenericBuyInfo( typeof( Nails ), 3, 20, 0x102E, 0 ) );
 				Add( new GenericBuyInfo( typeof( ClockParts ), 3, 20, 0x104F, 0 ) );
@@ -39,7 +38,7 @@ namespace Server.Mobiles
 				Add( new GenericBuyInfo( typeof( KeyRing ), 8, 20, 0x1010, 0 ) );
 				Add( new GenericBuyInfo( typeof( Lockpick ), 12, 20, 0x14FC, 0 ) );
 
-				Add( new GenericBuyInfo( typeof( TinkerTools ), 7, 20, 0x1EB8, 0 ) );
+				Add( new GenericBuyInfo( typeof( TinkersTools ), 7, 20, 0x1EBC, 0 ) );
 				Add( new GenericBuyInfo( typeof( Board ), 3, 20, 0x1BD7, 0 ) );
 				Add( new GenericBuyInfo( typeof( IronIngot ), 5, 16, 0x1BF2, 0 ) );
 				Add( new GenericBuyInfo( typeof( SewingKit ), 3, 20, 0xF9D, 0 ) );
@@ -75,7 +74,6 @@ namespace Server.Mobiles
 				Add( new GenericBuyInfo( typeof( Tambourine ), 21, 20, 0x0E9E, 0 ) );
 				Add( new GenericBuyInfo( typeof( LapHarp ), 21, 20, 0x0EB2, 0 ) );
 				Add( new GenericBuyInfo( typeof( Lute ), 21, 20, 0x0EB3, 0 ) );
-
 			} 
 		} 
 

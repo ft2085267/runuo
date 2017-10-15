@@ -62,7 +62,7 @@ namespace Server.Items
 
 		public static bool CheckTime( DateTime time, TimeSpan range )
 		{
-			return (time + range) < DateTime.Now;
+			return (time + range) < DateTime.UtcNow;
 		}
 
 		public static string FormatTS( TimeSpan ts )
@@ -161,7 +161,7 @@ namespace Server.Items
 				NetState state = from.NetState;
 
 				state.Send( new BBDisplayBoard( this ) );
-				if ( state.IsPost6017 )
+				if ( state.ContainerGridLines )
 					state.Send( new ContainerContent6017( from, this ) );
 				else
 					state.Send( new ContainerContent( from, this ) );
@@ -183,7 +183,7 @@ namespace Server.Items
 		public void PostMessage( Mobile from, BulletinMessage thread, string subject, string[] lines )
 		{
 			if ( thread != null )
-				thread.LastPostTime = DateTime.Now;
+				thread.LastPostTime = DateTime.UtcNow;
 
 			AddItem( new BulletinMessage( from, thread, subject, lines ) );
 		}
@@ -363,7 +363,7 @@ namespace Server.Items
 
 			m_Poster = poster;
 			m_Subject = subject;
-			m_Time = DateTime.Now;
+			m_Time = DateTime.UtcNow;
 			m_LastPostTime = m_Time;
 			m_Thread = thread;
 			m_PostedName = m_Poster.Name;
@@ -403,7 +403,7 @@ namespace Server.Items
 		{
 			base.Serialize( writer );
 
-			writer.Write( (int) 0 ); // version
+			writer.Write( (int) 1 ); // version
 
 			writer.Write( (Mobile) m_Poster );
 			writer.Write( (string) m_Subject );
@@ -437,6 +437,7 @@ namespace Server.Items
 
 			switch ( version )
 			{
+				case 1:
 				case 0:
 				{
 					m_Poster = reader.ReadMobile();
@@ -465,9 +466,18 @@ namespace Server.Items
 					if ( hasThread && m_Thread == null )
 						Delete();
 
+					if ( version == 0 )
+						ValidationQueue<BulletinMessage>.Add( this );
+
 					break;
 				}
 			}
+		}
+
+		public void Validate()
+		{
+			if ( !( Parent is BulletinBoard && ((BulletinBoard)Parent).Items.Contains( this ) ) )
+				Delete();
 		}
 	}
 
@@ -593,20 +603,30 @@ namespace Server.Items
 			m_Stream.Write( (byte) len );
 
 			for ( int i = 0; i < len; ++i )
-				WriteString( msg.Lines[i] );
+				WriteString( msg.Lines[i], true );
 		}
 
 		public void WriteString( string v )
 		{
+			WriteString( v, false );
+		}
+
+		public void WriteString( string v, bool padding )
+		{
 			byte[] buffer = Utility.UTF8.GetBytes( v );
-			int len = buffer.Length + 1;
+			int tail = padding ? 2 : 1;
+			int len = buffer.Length + tail;
 
 			if ( len > 255 )
 				len = 255;
 
 			m_Stream.Write( (byte) len );
-			m_Stream.Write( buffer, 0, len-1 );
-			m_Stream.Write( (byte) 0 );
+			m_Stream.Write( buffer, 0, len - tail );
+
+			if ( padding )
+				m_Stream.Write( (short) 0 ); // padding compensates for a client bug
+			else
+				m_Stream.Write( (byte) 0 );
 		}
 
 		public string SafeString( string v )

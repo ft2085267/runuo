@@ -131,7 +131,9 @@ namespace Server.Spells.Chivalry
 
 				Effects.SendLocationParticles( EffectItem.Create( Caster.Location, Caster.Map, EffectItem.DefaultDuration ), 0, 0, 0, 5033 );
 
+				Caster.PlaySound( 0x1FC );
 				Caster.MoveToWorld( loc, map );
+				Caster.PlaySound( 0x1FC );
 			}
 
 			FinishSequence();
@@ -175,10 +177,20 @@ namespace Server.Spells.Chivalry
 					else
 						from.Send( new MessageLocalized( from.Serial, from.Body, MessageType.Regular, 0x3B2, 3, 502357, from.Name, "" ) ); // I can not recall from that object.
 				}
+				else if ( o is HouseRaffleDeed && ((HouseRaffleDeed)o).ValidLocation() )
+				{
+					HouseRaffleDeed deed = (HouseRaffleDeed)o;
+
+					m_Owner.Effect( deed.PlotLocation, deed.PlotFacet, true );
+				}
 				else
 				{
 					from.Send( new MessageLocalized( from.Serial, from.Body, MessageType.Regular, 0x3B2, 3, 502357, from.Name, "" ) ); // I can not recall from that object.
 				}
+			}
+			
+			protected override void OnNonlocalTarget( Mobile from, object o )
+			{
 			}
 
 			protected override void OnTargetFinish( Mobile from )

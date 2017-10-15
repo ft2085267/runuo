@@ -1,12 +1,12 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server.Items;
 
 namespace Server.Mobiles
 {
 	public class SBCarpenter: SBInfo
 	{
-		private ArrayList m_BuyInfo = new InternalBuyInfo();
+		private List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
 		private IShopSellInfo m_SellInfo = new InternalSellInfo();
 
 		public SBCarpenter()
@@ -14,9 +14,9 @@ namespace Server.Mobiles
 		}
 
 		public override IShopSellInfo SellInfo { get { return m_SellInfo; } }
-		public override ArrayList BuyInfo { get { return m_BuyInfo; } }
+		public override List<GenericBuyInfo> BuyInfo { get { return m_BuyInfo; } }
 
-		public class InternalBuyInfo : ArrayList
+		public class InternalBuyInfo : List<GenericBuyInfo>
 		{
 			public InternalBuyInfo()
 			{
@@ -49,7 +49,7 @@ namespace Server.Mobiles
 				Add( typeof( MediumCrate ), 6 );
 				Add( typeof( LargeCrate ), 7 );
 				Add( typeof( WoodenChest ), 15 );
-              
+
 				Add( typeof( LargeTable ), 10 );
 				Add( typeof( Nightstand ), 7 );
 				Add( typeof( YewWoodTable ), 10 );

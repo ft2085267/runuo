@@ -64,7 +64,7 @@ namespace Server.Misc
 
 			// The new AOS bankboxes don't have powerscrolls, they are automatically 'applied':
 
-			for ( int i = 0; i < PowerScroll.Skills.Length; ++i )
+			for ( int i = 0; i < PowerScroll.Skills.Count; ++i )
 				m.Skills[PowerScroll.Skills[ i ]].Cap = 120.0;
 
 			m.StatCap = 250;
@@ -357,11 +357,11 @@ namespace Server.Misc
 			PlaceItemIn( cont, 93, 66, new PixieSwatter() );
 
 			for( int i = 0; i < 10; i++ )
-                PlaceItemIn( cont, 117, 128, new MessageInABottle( Utility.RandomBool() ? Map.Trammel : Map.Felucca, 4 ) );
+				PlaceItemIn( cont, 117, 128, new MessageInABottle( Utility.RandomBool() ? Map.Trammel : Map.Felucca, 4 ) );
 
 			PlaceItemIn( bank, 18, 124, cont );
 
-			if( TreasuresOfTokuno.Enabled )
+			if( Core.SE )
 			{
 				cont = new Bag();
 				cont.Hue = 0x501;
@@ -373,7 +373,7 @@ namespace Server.Misc
 				PlaceItemIn( cont, 92, 80, new DragonNunchaku() );
 				PlaceItemIn( cont, 42, 56, new PeasantsBokuto() );
 				PlaceItemIn( cont, 44, 71, new TomeOfEnlightenment() );
-				//PlaceItemIn( cont, 35, 35, new ChestOfHeirlooms() );	//Chest of Heirlooms
+				PlaceItemIn( cont, 35, 35, new ChestOfHeirlooms() );
 				PlaceItemIn( cont, 29,  0, new HonorableSwords() );
 				PlaceItemIn( cont, 49, 85, new AncientUrn() );
 				PlaceItemIn( cont, 51, 58, new FluteOfRenewal() );
@@ -532,7 +532,7 @@ namespace Server.Misc
 		{
 			Bag bag = new Bag();
 
-			for ( int i = 0; i < PowerScroll.Skills.Length; ++i )
+			for ( int i = 0; i < PowerScroll.Skills.Count; ++i )
 				bag.DropItem( new PowerScroll( PowerScroll.Skills[i], 120.0 ) );
 
 			bag.DropItem( new StatCapScroll( 250 ) );
@@ -615,11 +615,16 @@ namespace Server.Misc
 			if ( !VerifyProfession( args.Profession ) )
 				args.Profession = 0;
 
+			NetState state = args.State;
+
+			if ( state == null )
+				return;
+
 			Mobile newChar = CreateMobile( args.Account as Account );
 
 			if ( newChar == null )
 			{
-				Console.WriteLine( "Login: {0}: Character creation failed, account full", args.State );
+				Console.WriteLine( "Login: {0}: Character creation failed, account full", state );
 				return;
 			}
 
@@ -657,7 +662,7 @@ namespace Server.Misc
 
 			AddBackpack( newChar );
 
-			SetStats( newChar, args.Str, args.Dex, args.Int );
+			SetStats( newChar, state, args.Str, args.Dex, args.Int );
 			SetSkills( newChar, args.Skills, args.Profession );
 
 			Race race = newChar.Race;
@@ -692,11 +697,10 @@ namespace Server.Misc
 			}
 
 			CityInfo city = GetStartLocation( args, young );
-			//CityInfo city = new CityInfo( "Britain", "Sweet Dreams Inn", 1496, 1628, 10, Map.Felucca );
 
 			newChar.MoveToWorld( city.Location, city.Map );
 
-			Console.WriteLine( "Login: {0}: New character being created (account={1})", args.State, args.Account.Username );
+			Console.WriteLine( "Login: {0}: New character being created (account={1})", state, args.Account.Username );
 			Console.WriteLine( " - Character: {0} (serial={1})", newChar.Name, newChar.Serial );
 			Console.WriteLine( " - Started: {0} {1} in {2}", city.City, city.Location, city.Map.ToString() );
 
@@ -734,14 +738,13 @@ namespace Server.Misc
 			}
 		}
 
-		private static readonly ClientVersion m_NewHavenClient = new ClientVersion( "6.0.0.0" );
 		private static readonly CityInfo m_NewHavenInfo = new CityInfo( "New Haven", "The Bountiful Harvest Inn", 3503, 2574, 14, Map.Trammel );
 
 		private static CityInfo GetStartLocation( CharacterCreatedEventArgs args, bool isYoung )
 		{
 			if( Core.ML )
 			{
-				//if( args.State != null && args.State.Version >= m_NewHavenClient )
+				//if( args.State != null && args.State.NewHaven )
 				return m_NewHavenInfo;	//We don't get the client Version until AFTER Character creation
 
 				//return args.City;  TODO: Uncomment when the old quest system is actually phased out
@@ -749,14 +752,14 @@ namespace Server.Misc
 
 			bool useHaven = isYoung;
 
-			int flags = args.State == null ? 0 : args.State.Flags;
+			ClientFlags flags = args.State == null ? ClientFlags.None : args.State.Flags;
 			Mobile m = args.Mobile;
 
 			switch ( args.Profession )
 			{
 				case 4: //Necro
 				{
-					if ( (flags & 0x8) != 0 )
+					if ( (flags & ClientFlags.Malas) != 0 )
 					{
 						return new CityInfo( "Umbra", "Mardoth's Tower", 2114, 1301, -50, Map.Malas );
 					}
@@ -782,7 +785,7 @@ namespace Server.Misc
 				}
 				case 6:	//Samurai
 				{
-					if ( (flags & 0x10) != 0 )
+					if ( (flags & ClientFlags.Tokuno) != 0 )
 					{
 						return new CityInfo( "Samurai DE", "Haoti's Grounds", 368, 780, -1, Map.Malas );
 					}
@@ -804,7 +807,7 @@ namespace Server.Misc
 				}
 				case 7:	//Ninja
 				{
-					if ( (flags & 0x10) != 0 )
+					if ( (flags & ClientFlags.Tokuno) != 0 )
 					{
 						return new CityInfo( "Ninja DE", "Enimo's Residence", 414,	823, -1, Map.Malas );
 					}
@@ -832,8 +835,10 @@ namespace Server.Misc
 				return args.City;
 		}
 
-		private static void FixStats( ref int str, ref int dex, ref int intel )
+		private static void FixStats( ref int str, ref int dex, ref int intel, int max )
 		{
+			int vMax = max - 30;
+
 			int vStr = str - 10;
 			int vDex = dex - 10;
 			int vInt = intel - 10;
@@ -849,39 +854,41 @@ namespace Server.Misc
 
 			int total = vStr + vDex + vInt;
 
-			if ( total == 0 || total == 50 )
+			if ( total == 0 || total == vMax )
 				return;
 
-			double scalar = 50 / (double)total;
+			double scalar = vMax / (double)total;
 
 			vStr = (int)(vStr * scalar);
 			vDex = (int)(vDex * scalar);
 			vInt = (int)(vInt * scalar);
 
-			FixStat( ref vStr, (vStr + vDex + vInt) - 50 );
-			FixStat( ref vDex, (vStr + vDex + vInt) - 50 );
-			FixStat( ref vInt, (vStr + vDex + vInt) - 50 );
+			FixStat( ref vStr, (vStr + vDex + vInt) - vMax, vMax );
+			FixStat( ref vDex, (vStr + vDex + vInt) - vMax, vMax );
+			FixStat( ref vInt, (vStr + vDex + vInt) - vMax, vMax );
 
 			str = vStr + 10;
 			dex = vDex + 10;
 			intel = vInt + 10;
 		}
 
-		private static void FixStat( ref int stat, int diff )
+		private static void FixStat( ref int stat, int diff, int max )
 		{
 			stat += diff;
 
 			if ( stat < 0 )
 				stat = 0;
-			else if ( stat > 50 )
-				stat = 50;
+			else if ( stat > max )
+				stat = max;
 		}
 
-		private static void SetStats( Mobile m, int str, int dex, int intel )
+		private static void SetStats( Mobile m, NetState state, int str, int dex, int intel )
 		{
-			FixStats( ref str, ref dex, ref intel );
+			int max = state.NewCharacterCreation ? 90 : 80;
 
-			if ( str < 10 || str > 60 || dex < 10 || dex > 60 || intel < 10 || intel > 60 || (str + dex + intel) != 80 )
+			FixStats( ref str, ref dex, ref intel, max );
+
+			if ( str < 10 || str > 60 || dex < 10 || dex > 60 || intel < 10 || intel > 60 || (str + dex + intel) != max )
 			{
 				str = 10;
 				dex = 10;
@@ -919,7 +926,7 @@ namespace Server.Misc
 				}
 			}
 
-			return ( total == 100 );
+			return ( total == 100 || total == 120 );
 		}
 
 		private static Mobile m_Mobile;
@@ -1047,7 +1054,6 @@ namespace Server.Misc
 
 					regs.LootType = LootType.Regular;
 
-					
 					EquipItem( new BoneHelm() );
 
 					if ( elf )
@@ -1118,7 +1124,7 @@ namespace Server.Misc
 
 					break;
 				}
-					
+
 				case 6: // Samurai
 				{
 					addSkillItems = false;
@@ -1236,7 +1242,7 @@ namespace Server.Misc
 
 		private static void PackScroll( int circle )
 		{
-			switch ( Utility.Random( 8 ) * (circle * 8) )
+			switch ( Utility.Random( 8 ) * ( circle + 1 ) )
 			{
 				case  0: PackItem( new ClumsyScroll() ); break;
 				case  1: PackItem( new CreateFoodScroll() ); break;
@@ -1272,7 +1278,7 @@ namespace Server.Misc
 			return item;
 		}
 
-		private static void	AddSkillItems( SkillName skill, Mobile m )
+		private static void AddSkillItems( SkillName skill, Mobile m )
 		{
 			bool elf = (m.Race == Race.Elf);
 
@@ -1313,14 +1319,12 @@ namespace Server.Misc
 					}
 					else
 					{
-						EquipItem( new Robe( Utility.RandomPinkHue() ) );
+						EquipItem( new Robe( hue ) );
 					}
 					break;
 				}
 				case SkillName.AnimalLore:
 				{
-					
-
 					int hue = Utility.RandomBlueHue();
 
 					if ( elf )
@@ -1476,7 +1480,7 @@ namespace Server.Misc
 					}
 					else
 					{
-						EquipItem( new FloppyHat( Utility.RandomYellowHue() ) );
+						EquipItem( new FloppyHat( hue ) );
 					}
 
 					break;

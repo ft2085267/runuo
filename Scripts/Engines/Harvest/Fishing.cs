@@ -2,6 +2,7 @@ using System;
 using Server;
 using Server.Items;
 using Server.Mobiles;
+using Server.Network;
 using Server.Engines.Quests;
 using Server.Engines.Quests.Collector;
 using System.Collections.Generic;
@@ -216,7 +217,7 @@ namespace Server.Engines.Harvest
 				{
 					SOS sos = messages[i];
 
-					if ( from.Map == sos.TargetMap && from.InRange( sos.TargetLocation, 60 ) )
+					if ( ( from.Map == Map.Felucca || from.Map == Map.Trammel ) && from.InRange( sos.TargetLocation, 60 ) )
 						return true;
 				}
 			}
@@ -251,7 +252,7 @@ namespace Server.Engines.Harvest
 				{
 					SOS sos = messages[i];
 
-					if ( from.Map == sos.TargetMap && from.InRange( sos.TargetLocation, 60 ) )
+					if ( ( from.Map == Map.Felucca || from.Map == Map.Trammel ) && from.InRange( sos.TargetLocation, 60 ) )
 					{
 						Item preLoot = null;
 
@@ -344,7 +345,7 @@ namespace Server.Engines.Harvest
 						if ( sos.IsAncient )
 							chest.Hue = 0x481;
 
-						TreasureMapChest.Fill( chest, Math.Max( 1, Math.Max( 4, sos.Level ) ) );
+						TreasureMapChest.Fill( chest, Math.Max( 1, Math.Min( 4, sos.Level ) ) );
 
 						if ( sos.IsAncient )
 							chest.DropItem( new FabledFishingNet() );
@@ -387,7 +388,7 @@ namespace Server.Engines.Harvest
 					int tx = m.X - 10 + Utility.Random( 21 );
 					int ty = m.Y - 10 + Utility.Random( 21 );
 
-					Tile t = map.Tiles.GetLandTile( tx, ty );
+					LandTile t = map.Tiles.GetLandTile( tx, ty );
 
 					if ( t.Z == -5 && ( (t.ID >= 0xA8 && t.ID <= 0xAB) || (t.ID >= 0x136 && t.ID <= 0x137) ) && !Spells.SpellHelper.CheckMulti( new Point3D( tx, ty, -5 ), map ) )
 					{
@@ -440,7 +441,7 @@ namespace Server.Engines.Harvest
 				else if ( item is Fish )
 				{
 					number = 1008124;
-					name = "a fish";
+					name = item.ItemData.Name;
 				}
 				else if ( item is BaseShoes )
 				{
@@ -474,7 +475,12 @@ namespace Server.Engines.Harvest
 						name = item.ItemData.Name;
 				}
 
-				if ( number == 1043297 )
+				NetState ns = from.NetState;
+
+				if ( ns == null )
+					return;
+
+				if ( number == 1043297 || ns.HighSeas )
 					from.SendLocalizedMessage( number, name );
 				else
 					from.SendLocalizedMessage( number, true, name );

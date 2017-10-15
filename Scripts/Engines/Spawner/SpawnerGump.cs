@@ -16,15 +16,15 @@ namespace Server.Mobiles
 
 			AddPage( 0 );
 
-			AddBackground( 0, 0, 260, 371, 5054 );
+			AddBackground( 0, 0, 410, 371, 5054 );
 
-			AddLabel( 95, 1, 0, "Creatures List" );
+			AddLabel( 160, 1, 0, "Creatures List" );
 
 			AddButton( 5, 347, 0xFB1, 0xFB3, 0, GumpButtonType.Reply, 0 );
 			AddLabel( 38, 347, 0x384, "Cancel" );
 
 			AddButton( 5, 325, 0xFB7, 0xFB9, 1, GumpButtonType.Reply, 0 );
-			AddLabel( 38, 325, 0x384, "Okay" );
+			AddLabel( 38, 325, 0x384, "Apply" );
 
 			AddButton( 110, 325, 0xFB4, 0xFB6, 2, GumpButtonType.Reply, 0 );
 			AddLabel( 143, 325, 0x384, "Bring to Home" );
@@ -37,20 +37,20 @@ namespace Server.Mobiles
 				AddButton( 5, ( 22 * i ) + 20, 0xFA5, 0xFA7, 4 + (i * 2), GumpButtonType.Reply, 0 );
 				AddButton( 38, ( 22 * i ) + 20, 0xFA2, 0xFA4, 5 + (i * 2), GumpButtonType.Reply, 0 );
 
-				AddImageTiled( 71, ( 22 * i ) + 20, 159, 23, 0xA40 );
-				AddImageTiled( 72, ( 22 * i ) + 21, 157, 21, 0xBBC );
+				AddImageTiled( 71, ( 22 * i ) + 20, 309, 23, 0xA40 );
+				AddImageTiled( 72, ( 22 * i ) + 21, 307, 21, 0xBBC );
 
 				string str = "";
 
-				if ( i < spawner.CreaturesName.Count )
+				if ( i < spawner.SpawnNames.Count )
 				{
-					str = (string)spawner.CreaturesName[i];
+					str = (string)spawner.SpawnNames[i];
 					int count = m_Spawner.CountCreatures( str );
 
-					AddLabel( 232, ( 22 * i ) + 20, 0, count.ToString() );
+					AddLabel( 382, ( 22 * i ) + 20, 0, count.ToString() );
 				}
 
-				AddTextEntry( 75, ( 22 * i ) + 21, 154, 21, 0, i, str );
+				AddTextEntry( 75, ( 22 * i ) + 21, 304, 21, 0, i, str );
 			}
 		}
 
@@ -70,12 +70,14 @@ namespace Server.Mobiles
 					{
 						str = str.Trim();
 
-						Type type = SpawnerType.GetType( str );
+						string t = Spawner.ParseType( str );
+
+						Type type = ScriptCompiler.FindTypeByName( t );
 
 						if ( type != null )
 							creaturesName.Add( str );
 						else
-							from.SendMessage( "{0} is not a valid type name.", str );
+							from.SendMessage( "{0} is not a valid type name.", t );
 					}
 				}
 			}
@@ -85,28 +87,28 @@ namespace Server.Mobiles
 		
 		public override void OnResponse( NetState state, RelayInfo info )
 		{
-			if ( m_Spawner.Deleted )
+			if ( m_Spawner.Deleted || state.Mobile.AccessLevel < AccessLevel.GameMaster )
 				return;
 
 			switch ( info.ButtonID )
 			{
 				case 0: // Closed
 				{
-					break;
+					return;
 				}
-				case 1: // Okay
+				case 1: // Apply
 				{
-					m_Spawner.CreaturesName = CreateArray( info, state.Mobile );
+					m_Spawner.SpawnNames = CreateArray( info, state.Mobile );
 
 					break;
 				}
-				case 2: // Bring everything home
+				case 2: // Bring to Home
 				{
 					m_Spawner.BringToHome();
 
 					break;
 				}
-				case 3: // Complete respawn
+				case 3: // Total Respawn
 				{
 					m_Spawner.Respawn();
 
@@ -125,14 +127,16 @@ namespace Server.Mobiles
 						if ( type == 0 ) // Spawn creature
 							m_Spawner.Spawn( entry.Text );
 						else // Remove creatures
-							m_Spawner.RemoveCreatures( entry.Text );
+							m_Spawner.RemoveSpawned( entry.Text );
 
-						m_Spawner.CreaturesName = CreateArray( info, state.Mobile );
+						m_Spawner.SpawnNames = CreateArray( info, state.Mobile );
 					}
 
 					break;
 				}
 			}
+
+			state.Mobile.SendGump( new SpawnerGump( m_Spawner ) );
 		}
 	}
 }

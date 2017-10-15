@@ -126,10 +126,10 @@ namespace Server.Misc
 			NetState state = e.State;
 			ClientVersion version = e.Version;
 
-			if ( state.Mobile.AccessLevel > AccessLevel.Player )
+			if ( state.Mobile == null || state.Mobile.AccessLevel > AccessLevel.Player )
 				return;
 
-			if( Required != null && version < Required && ( m_OldClientResponse == OldClientResponse.Kick ||( m_OldClientResponse == OldClientResponse.LenientKick && (DateTime.Now - state.Mobile.CreationTime) > m_AgeLeniency && state.Mobile is PlayerMobile && ((PlayerMobile)state.Mobile).GameTime > m_GameTimeLeniency )))
+			if( Required != null && version < Required && ( m_OldClientResponse == OldClientResponse.Kick ||( m_OldClientResponse == OldClientResponse.LenientKick && (DateTime.UtcNow - state.Mobile.CreationTime) > m_AgeLeniency && state.Mobile is PlayerMobile && ((PlayerMobile)state.Mobile).GameTime > m_GameTimeLeniency )))
 			{
 				kickMessage = String.Format( "This server requires your client version be at least {0}.", Required );
 			}
@@ -182,7 +182,7 @@ namespace Server.Misc
 					case OldClientResponse.Warn:
 					{
 						state.Mobile.SendMessage( 0x22, "Your client is out of date. Please update your client.", Required );
-						state.Mobile.SendMessage( 0x22, "This server reccomends that your client version be at least {0}.", Required );
+						state.Mobile.SendMessage( 0x22, "This server recommends that your client version be at least {0}.", Required );
 						break;
 					}
 					case OldClientResponse.LenientKick:

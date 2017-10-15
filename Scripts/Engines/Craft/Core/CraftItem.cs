@@ -30,10 +30,14 @@ namespace Server.Engines.Craft
 
 		private string m_NameString;
 		private int m_NameNumber;
-		
+
+		private int m_ItemHue;
+
 		private int m_Mana;
 		private int m_Hits;
 		private int m_Stam;
+
+		private BeverageType m_RequiredBeverage;
 
 		private bool m_UseAllRes;
 
@@ -50,7 +54,6 @@ namespace Server.Engines.Craft
 			get { return m_ForceNonExceptional; }
 			set { m_ForceNonExceptional = value; }
 		}
-	
 
 		private Expansion m_RequiredExpansion;
 
@@ -78,6 +81,16 @@ namespace Server.Engines.Craft
 			m_Recipe = new Recipe( id, system, this );
 		}
 
+		public static int LabelNumber( Type type ) {
+			int number = ItemIDOf( type );
+
+			if ( number >= 0x4000 )
+				number += 1078872;
+			else
+				number += 1020000;
+
+			return number;
+		}
 
 		private static Dictionary<Type, int> _itemIds = new Dictionary<Type, int>();
 		
@@ -133,6 +146,14 @@ namespace Server.Engines.Craft
 
 			m_GroupNameNumber = groupName;
 			m_NameNumber = name;
+
+			m_RequiredBeverage = BeverageType.Water;
+		}
+
+		public BeverageType RequiredBeverage
+		{
+			get { return m_RequiredBeverage; }
+			set { m_RequiredBeverage = value; }
 		}
 
 		public void AddRes( Type type, TextDefinition name, int amount )
@@ -200,10 +221,16 @@ namespace Server.Engines.Craft
 			get { return m_NeedMill; }
 			set { m_NeedMill = value; }
 		}
-		
+
 		public Type ItemType
 		{
 			get { return m_Type; }
+		}
+
+		public int ItemHue
+		{
+			get { return m_ItemHue; }
+			set { m_ItemHue = value; }
 		}
 
 		public string GroupNameString
@@ -295,7 +322,10 @@ namespace Server.Engines.Craft
 				0x184E, 0x1850, // Heating stand (right)
 				0x398C, 0x399F,  // Fire field
 				0x2DDB, 0x2DDC,	//Elven stove
-				0x19AA, 0x19BB	// Veteran Reward Brazier
+				0x19AA, 0x19BB,	// Veteran Reward Brazier
+				0x197A, 0x19A9, // Large Forge 
+				0x0FB1, 0x0FB1, // Small Forge
+				0x2DD8, 0x2DD8 // Elven Forge
 			};
 
 		private static int[] m_Ovens = new int[]
@@ -318,7 +348,7 @@ namespace Server.Engines.Craft
 				new Type[]{ typeof( BloodwoodLog ), typeof( BloodwoodBoard ) },
 				new Type[]{ typeof( FrostwoodLog ), typeof( FrostwoodBoard ) },
 				new Type[]{ typeof( OakLog ), typeof( OakBoard ) },
-				new Type[]{ typeof( AshLog ), typeof( YewBoard ) },
+				new Type[]{ typeof( AshLog ), typeof( AshBoard ) },
 				new Type[]{ typeof( YewLog ), typeof( YewBoard ) },
 				new Type[]{ typeof( Leather ), typeof( Hides ) },
 				new Type[]{ typeof( SpinedLeather ), typeof( SpinedHides ) },
@@ -355,7 +385,13 @@ namespace Server.Engines.Craft
 					typeof( BaseTool ),
 					typeof( BaseHarvestTool ),
 					typeof( FukiyaDarts ), typeof( Shuriken ),
-					typeof( Spellbook ), typeof( Runebook )
+					typeof( Spellbook ), typeof( Runebook ),
+					typeof( BaseQuiver )
+				};
+
+		private static Type[] m_NeverColorTable = new Type[]
+				{
+					typeof( OrcHelm )
 				};
 		#endregion
 
@@ -373,20 +409,40 @@ namespace Server.Engines.Craft
 			return false;
 		}
 
+		public static bool RetainsColor( Type type )
+		{
+			bool neverColor = false;
+
+			for ( int i = 0; !neverColor && i < m_NeverColorTable.Length; ++i )
+				neverColor = ( type == m_NeverColorTable[i] || type.IsSubclassOf( m_NeverColorTable[i] ) );
+
+			if ( neverColor )
+				return false;
+
+			bool inItemTable = false;
+
+			for ( int i = 0; !inItemTable && i < m_ColoredItemTable.Length; ++i )
+				inItemTable = ( type == m_ColoredItemTable[i] || type.IsSubclassOf( m_ColoredItemTable[i] ) );
+
+			return inItemTable;
+		}
+
 		public bool RetainsColorFrom( CraftSystem system, Type type )
 		{
 			if ( system.RetainsColorFrom( this, type ) )
 				return true;
 
-			bool inItemTable = false, inResourceTable = false;
+			bool inItemTable = RetainsColor( m_Type );
 
-			for ( int i = 0; !inItemTable && i < m_ColoredItemTable.Length; ++i )
-				inItemTable = ( m_Type == m_ColoredItemTable[i] || m_Type.IsSubclassOf( m_ColoredItemTable[i] ) );
+			if ( !inItemTable )
+				return false;
 
-			for ( int i = 0; inItemTable && !inResourceTable && i < m_ColoredResourceTable.Length; ++i )
+			bool inResourceTable = false;
+
+			for ( int i = 0; !inResourceTable && i < m_ColoredResourceTable.Length; ++i )
 				inResourceTable = ( type == m_ColoredResourceTable[i] || type.IsSubclassOf( m_ColoredResourceTable[i] ) );
 
-			return ( inItemTable && inResourceTable );
+			return inResourceTable;
 		}
 
 		public bool Find( Mobile from, int[] itemIDs )
@@ -416,12 +472,12 @@ namespace Server.Engines.Craft
 					int vx = from.X + x;
 					int vy = from.Y + y;
 
-					Tile[] tiles = map.Tiles.GetStaticTiles( vx, vy, true );
+					StaticTile[] tiles = map.Tiles.GetStaticTiles( vx, vy, true );
 
 					for ( int i = 0; i < tiles.Length; ++i )
 					{
 						int z = tiles[i].Z;
-						int id = tiles[i].ID & 0x3FFF;
+						int id = tiles[i].ID;
 
 						if ( (z + 16) > from.Z && (from.Z + 16) > z && Find( id, itemIDs ) )
 							return true;
@@ -480,7 +536,7 @@ namespace Server.Engines.Craft
 					}
 					else
 					{
-						if ( hq is BaseBeverage && ((BaseBeverage)hq).Content != BeverageType.Water )
+						if ( hq is BaseBeverage && ((BaseBeverage)hq).Content != m_RequiredBeverage )
 							continue;
 
 						totals[i] += hq.Quantity;
@@ -517,7 +573,7 @@ namespace Server.Engines.Craft
 					}
 					else
 					{
-						if ( hq is BaseBeverage && ((BaseBeverage)hq).Content != BeverageType.Water )
+						if ( hq is BaseBeverage && ((BaseBeverage)hq).Content != m_RequiredBeverage )
 							continue;
 
 						int theirAmount = hq.Quantity;
@@ -555,7 +611,7 @@ namespace Server.Engines.Craft
 				}
 				else
 				{
-					if ( hq is BaseBeverage && ((BaseBeverage)hq).Content != BeverageType.Water )
+					if ( hq is BaseBeverage && ((BaseBeverage)hq).Content != m_RequiredBeverage )
 						continue;
 
 					amount += hq.Quantity;
@@ -811,11 +867,24 @@ namespace Server.Engines.Craft
 			if( m_ForceNonExceptional )
 				return 0.0;
 
+			double bonus = 0.0;
+
+			if ( from.Talisman is BaseTalisman )
+			{
+				BaseTalisman talisman = (BaseTalisman) from.Talisman;
+				
+				if ( talisman.Skill == system.MainSkill )
+				{
+					chance -= talisman.SuccessBonus / 100.0;
+					bonus = talisman.ExceptionalBonus / 100.0;
+				}
+			}
+
 			switch ( system.ECA )
 			{
 				default:
-				case CraftECA.ChanceMinusSixty: return chance - 0.6;
-				case CraftECA.FiftyPercentChanceMinusTenPercent: return (chance * 0.5) - 0.1;
+				case CraftECA.ChanceMinusSixty: chance -= 0.6; break;
+				case CraftECA.FiftyPercentChanceMinusTenPercent: chance = chance * 0.5 - 0.1; break;
 				case CraftECA.ChanceMinusSixtyToFourtyFive:
 				{
 					double offset = 0.60 - ((from.Skills[system.MainSkill].Value - 95.0) * 0.03);
@@ -825,9 +894,15 @@ namespace Server.Engines.Craft
 					else if ( offset > 0.60 )
 						offset = 0.60;
 
-					return chance - offset;
+					chance -= offset;
+					break;
 				}
 			}
+
+			if ( chance > 0 )
+				return chance + bonus;
+
+			return chance;
 		}
 
 		public bool CheckSkills( Mobile from, Type typeRes, CraftSystem craftSystem, ref int quality, ref bool allRequiredSkills )
@@ -881,6 +956,14 @@ namespace Server.Engines.Craft
 				chance = craftSystem.GetChanceAtMin( this ) + ((valMainSkill - minMainSkill) / (maxMainSkill - minMainSkill) * (1.0 - craftSystem.GetChanceAtMin( this )));
 			else
 				chance = 0.0;
+
+			if ( allRequiredSkills && from.Talisman is BaseTalisman )
+			{
+				BaseTalisman talisman = (BaseTalisman) from.Talisman;
+				
+				if ( talisman.Skill == craftSystem.MainSkill )
+					chance += talisman.SuccessBonus / 100.0;
+			}
 
 			if ( allRequiredSkills && valMainSkill == maxMainSkill )
 				chance = 1.0;
@@ -1074,7 +1157,7 @@ namespace Server.Engines.Craft
 					}
 				}
 
-				if ( tool.UsesRemaining < 1 )
+				if ( tool.UsesRemaining < 1 && tool.BreakOnDepletion )
 					toolBroken = true;
 
 				if ( toolBroken )
@@ -1195,7 +1278,7 @@ namespace Server.Engines.Craft
 
 				tool.UsesRemaining--;
 
-				if ( tool.UsesRemaining < 1 )
+				if ( tool.UsesRemaining < 1 && tool.BreakOnDepletion )
 					toolBroken = true;
 
 				if ( toolBroken )

@@ -35,7 +35,7 @@ namespace Server.Mobiles
 	{
 		Antique,
 		Dark,
-		Medium, 
+		Medium,
 		Light
 	}
 
@@ -73,12 +73,14 @@ namespace Server.Mobiles
 		public Mobile SculptedBy
 		{
 			get{ return m_SculptedBy; }
+			set{ m_SculptedBy = value; InvalidateProperties(); }
 		}
 
 		[CommandProperty( AccessLevel.GameMaster )]
 		public DateTime SculptedOn
 		{
 			get{ return m_SculptedOn; }
+			set{ m_SculptedOn = value; }
 		}
 
 		private CharacterStatuePlinth m_Plinth;
@@ -130,8 +132,8 @@ namespace Server.Mobiles
 
 			if ( m_SculptedBy != null )
 			{
-				if ( m_SculptedBy.Title != null )
-					list.Add( 1076202, m_SculptedBy.Title + " " + m_SculptedBy.Name ); // Sculpted by ~1_Name~
+				if ( m_SculptedBy.ShowFameTitle && ( m_SculptedBy.Player || m_SculptedBy.Body.IsHuman ) && m_SculptedBy.Fame >= 10000 )
+					list.Add( 1076202, String.Format( "{0} {1}", m_SculptedBy.Female ? "Lady" : "Lord", m_SculptedBy.Name ) ); // Sculpted by ~1_Name~
 				else
 					list.Add( 1076202, m_SculptedBy.Name ); // Sculpted by ~1_Name~
 			}
@@ -185,7 +187,7 @@ namespace Server.Mobiles
 		}
 
 		public void OnRequestedAnimation( Mobile from )
-		{				
+		{
 			from.Send( new UpdateStatueAnimation( this, 1, m_Animation, m_Frames ) );
 		}
 
@@ -230,21 +232,21 @@ namespace Server.Mobiles
 
 			Frozen = true;
 
-			if( m_SculptedBy == null || Map == Map.Internal )
+			if( m_SculptedBy == null || Map == Map.Internal ) // Remove preview statues
 			{
 				Timer.DelayCall( TimeSpan.Zero, new TimerCallback( Delete ) );
 			}
 		}
-		
+
 		public void Sculpt( Mobile by )
 		{
 			m_SculptedBy = by;
-			m_SculptedOn = DateTime.Now;
+			m_SculptedOn = DateTime.UtcNow;
 
 			InvalidateProperties();
 		}
 
-		public void Demolish( Mobile by )
+		public bool Demolish( Mobile by )
 		{
 			CharacterStatueDeed deed = new CharacterStatueDeed( null );
 
@@ -253,15 +255,20 @@ namespace Server.Mobiles
 				Delete();
 
 				deed.Statue = this;
+				deed.StatueType = m_Type;
 				deed.IsRewardItem = m_IsRewardItem;
 
 				if ( m_Plinth != null )
 					m_Plinth.Delete();
+
+				return true;
 			}
 			else
 			{
 				by.SendLocalizedMessage( 500720 ); // You don't have enough room in your backpack!
 				deed.Delete();
+
+				return false;
 			}
 		}
 
@@ -283,6 +290,7 @@ namespace Server.Mobiles
 		{
 			Name = from.Name;
 			BodyValue = from.BodyValue;
+			Female = from.Female;
 			HairItemID = from.HairItemID;
 			FacialHairItemID = from.FacialHairItemID;
 		}
@@ -309,7 +317,7 @@ namespace Server.Mobiles
 			cloned.Hue = item.Hue;
 			cloned.Weight = item.Weight;
 			cloned.Movable = false;
-			
+
 			return cloned;
 		}
 
@@ -336,7 +344,7 @@ namespace Server.Mobiles
 		{
 			switch ( m_Pose )
 			{
-				case StatuePose.Ready: 
+				case StatuePose.Ready:
 						m_Animation = 4;
 						m_Frames = 0;
 						break;
@@ -408,24 +416,28 @@ namespace Server.Mobiles
 	public class CharacterStatueDeed : Item, IRewardItem
 	{
 		public override int LabelNumber
-		{ 
+		{
 			get
-			{ 
+			{
+				StatueType t = m_Type;
+
 				if ( m_Statue != null )
 				{
-					switch ( m_Statue.StatueType )
-					{
-						case StatueType.Marble: return 1076189;
-						case StatueType.Jade: return 1076188;
-						case StatueType.Bronze: return 1076190;
-					}
+					t = m_Statue.StatueType;
 				}
 
-				return 1076173; 
-			} 
+				switch ( t )
+				{
+					case StatueType.Marble: return 1076189;
+					case StatueType.Jade: return 1076188;
+					case StatueType.Bronze: return 1076190;
+					default: return 1076173;
+				}
+			}
 		}
 
 		private CharacterStatue m_Statue;
+		private StatueType m_Type;
 		private bool m_IsRewardItem;
 
 		[CommandProperty( AccessLevel.GameMaster )]
@@ -439,12 +451,13 @@ namespace Server.Mobiles
 		public StatueType StatueType
 		{
 			get
-			{ 
+			{
 				if ( m_Statue != null )
-					return m_Statue.StatueType; 
+					return m_Statue.StatueType;
 
-				return StatueType.Marble;
+				return m_Type;
 			}
+			set { m_Type = value; }
 		}
 
 		[CommandProperty( AccessLevel.GameMaster )]
@@ -457,7 +470,13 @@ namespace Server.Mobiles
 		public CharacterStatueDeed( CharacterStatue statue ) : base( 0x14F0 )
 		{
 			m_Statue = statue;
-		
+
+			if ( statue != null )
+			{
+				m_Type = statue.StatueType;
+				m_IsRewardItem = statue.IsRewardItem;
+			}
+
 			LootType = LootType.Blessed;
 			Weight = 1.0;
 		}
@@ -483,11 +502,11 @@ namespace Server.Mobiles
 
 			if ( acct != null && from.AccessLevel == AccessLevel.Player )
 			{
-				TimeSpan time = TimeSpan.FromDays( RewardSystem.RewardInterval.TotalDays * 6 ) - ( DateTime.Now - acct.Created );
+				TimeSpan time = TimeSpan.FromDays( RewardSystem.RewardInterval.TotalDays * 6 ) - ( DateTime.UtcNow - acct.Created );
 
 				if ( time > TimeSpan.Zero )
 				{
-					from.SendLocalizedMessage( 1008126, true, Math.Ceiling( time.TotalDays / RewardSystem.RewardInterval.TotalDays ).ToString() ); // Your account is not old enough to use this item. Months until you can use this item : 
+					from.SendLocalizedMessage( 1008126, true, Math.Ceiling( time.TotalDays / RewardSystem.RewardInterval.TotalDays ).ToString() ); // Your account is not old enough to use this item. Months until you can use this item :
 					return;
 				}
 			}
@@ -518,7 +537,9 @@ namespace Server.Mobiles
 		{
 			base.Serialize( writer );
 
-			writer.WriteEncodedInt( (int) 0 ); // version
+			writer.WriteEncodedInt( (int) 1 ); // version
+
+			writer.Write( (int) m_Type );
 
 			writer.Write( (Mobile) m_Statue );
 			writer.Write( (bool) m_IsRewardItem );
@@ -530,11 +551,15 @@ namespace Server.Mobiles
 
 			int version = reader.ReadEncodedInt();
 
+			if ( version >= 1 ) {
+				m_Type = (StatueType) reader.ReadInt();
+			}
+
 			m_Statue = reader.ReadMobile() as CharacterStatue;
 			m_IsRewardItem = reader.ReadBool();
 		}
 	}
-	
+
 	public class CharacterStatueTarget : Target
 	{
 		private Item m_Maker;
@@ -556,7 +581,7 @@ namespace Server.Mobiles
 
 			if ( m_Maker.IsChildOf( from.Backpack ) )
 			{
-				SpellHelper.GetSurfaceTop( ref p );			
+				SpellHelper.GetSurfaceTop( ref p );
 				BaseHouse house = null;
 				Point3D loc = new Point3D( p );
 
@@ -574,7 +599,7 @@ namespace Server.Mobiles
 				AddonFitResult result = CouldFit( loc, map, from, ref house );
 
 				if ( result == AddonFitResult.Valid )
-				{				
+				{
 					CharacterStatue statue = new CharacterStatue( from, m_Type );
 					CharacterStatuePlinth plinth = new CharacterStatuePlinth( statue );
 
@@ -586,6 +611,14 @@ namespace Server.Mobiles
 					statue.Plinth = plinth;
 					plinth.MoveToWorld( loc, map );
 					statue.InvalidatePose();
+
+					/*
+					 * TODO: Previously the maker wasn't deleted until after statue
+					 * customization, leading to redeeding issues. Exact OSI behavior
+					 * needs looking into.
+					 */
+					m_Maker.Delete();
+					statue.Sculpt( from );
 
 					from.CloseGump( typeof( CharacterStatueGump ) );
 					from.SendGump( new CharacterStatueGump( m_Maker, statue, from ) );
@@ -602,7 +635,7 @@ namespace Server.Mobiles
 		}
 
 		public static AddonFitResult CouldFit( Point3D p, Map map, Mobile from, ref BaseHouse house )
-		{			
+		{
 			if ( !map.CanFit( p.X, p.Y, p.Z, 20, true, true, true ) )
 				return AddonFitResult.Blocked;
 			else if ( !BaseAddon.CheckHouse( from, p, map, 20, ref house ) )

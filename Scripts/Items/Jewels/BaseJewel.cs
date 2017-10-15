@@ -141,7 +141,7 @@ namespace Server.Items
 			m_HitPoints = m_MaxHitPoints = Utility.RandomMinMax( InitMinHits, InitMaxHits );
 		}
 
-		public override void OnAdded( object parent )
+		public override void OnAdded(IEntity parent)
 		{
 			if ( Core.AOS && parent is Mobile )
 			{
@@ -171,7 +171,7 @@ namespace Server.Items
 			}
 		}
 
-		public override void OnRemoved( object parent )
+		public override void OnRemoved(IEntity parent)
 		{
 			if ( Core.AOS && parent is Mobile )
 			{
@@ -272,6 +272,9 @@ namespace Server.Items
 
 			if ( (prop = m_AosAttributes.WeaponSpeed) != 0 )
 				list.Add( 1060486, prop.ToString() ); // swing speed increase ~1_val~%
+
+			if ( Core.ML && (prop = m_AosAttributes.IncreasedKarmaLoss) != 0 )
+				list.Add( 1075210, prop.ToString() ); // Increased Karma Loss ~1val~%
 
 			base.AddResistanceProperties( list );
 

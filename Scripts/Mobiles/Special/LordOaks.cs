@@ -21,7 +21,8 @@ namespace Server.Mobiles
 										typeof( TheMostKnowledgePerson ) }; } }
 		public override Type[] DecorativeList{ get{ return new Type[] { typeof( WaterTile ),
 										typeof( WindSpirit ),
-										typeof( Pier ), }; } }
+										typeof( Pier ),
+										typeof( DirtPatch )}; } }
 
 		public override MonsterStatuetteType[] StatueTypes{ get{ return new MonsterStatuetteType[] { }; } }
 
@@ -69,7 +70,7 @@ namespace Server.Mobiles
 		}
 		
 		public override bool AutoDispel{ get{ return true; } }
-
+		public override bool CanFly { get { return true; } }
 		public override bool BardImmune{ get{ return !Core.SE; } }
 		public override bool Unprovokable{ get{ return Core.SE; } }
 		public override bool Uncalmable{ get{ return Core.SE; } }

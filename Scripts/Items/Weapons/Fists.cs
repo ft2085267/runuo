@@ -21,6 +21,7 @@ namespace Server.Items
 		public override int AosMinDamage{ get{ return 1; } }
 		public override int AosMaxDamage{ get{ return 4; } }
 		public override int AosSpeed{ get{ return 50; } }
+		public override float MlSpeed{ get{ return 2.50f; } }
 
 		public override int OldStrengthReq{ get{ return 0; } }
 		public override int OldMinDamage{ get{ return 1; } }
@@ -61,7 +62,7 @@ namespace Server.Items
 				return incrValue;
 		}
 
-		public override TimeSpan OnSwing( Mobile attacker, Mobile defender )
+		private void CheckPreAOSMoves( Mobile attacker, Mobile defender )
 		{
 			if ( attacker.StunReady )
 			{
@@ -160,6 +161,12 @@ namespace Server.Items
 					}
 				}
 			}
+		}
+
+		public override TimeSpan OnSwing( Mobile attacker, Mobile defender )
+		{
+			if ( !Core.AOS )
+				CheckPreAOSMoves( attacker, defender );
 
 			return base.OnSwing( attacker, defender );
 		}
@@ -214,7 +221,15 @@ namespace Server.Items
 
 		private static void EventSink_DisarmRequest( DisarmRequestEventArgs e )
 		{
+			if ( Core.AOS )
+				return;
+
 			Mobile m = e.Mobile;
+
+			#region Dueling
+			if ( !Engines.ConPVP.DuelContext.AllowSpecialAbility( m, "Disarm", true ) )
+				return;
+			#endregion
 
 			double armsValue = m.Skills[SkillName.ArmsLore].Value;
 			double wresValue = m.Skills[SkillName.Wrestling].Value;
@@ -239,7 +254,15 @@ namespace Server.Items
 
 		private static void EventSink_StunRequest( StunRequestEventArgs e )
 		{
+			if ( Core.AOS )
+				return;
+
 			Mobile m = e.Mobile;
+
+			#region Dueling
+			if ( !Engines.ConPVP.DuelContext.AllowSpecialAbility( m, "Stun", true ) )
+				return;
+			#endregion
 
 			double anatValue = m.Skills[SkillName.Anatomy].Value;
 			double wresValue = m.Skills[SkillName.Wrestling].Value;

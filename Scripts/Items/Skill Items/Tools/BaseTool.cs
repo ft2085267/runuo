@@ -39,6 +39,8 @@ namespace Server.Items
 			set { m_UsesRemaining = value; InvalidateProperties(); }
 		}
 
+		public virtual bool BreakOnDepletion { get { return true; } }
+
 		public void ScaleUses()
 		{
 			m_UsesRemaining = (m_UsesRemaining * GetUsesScalar()) / 100;
@@ -130,7 +132,7 @@ namespace Server.Items
 
 				int num = system.CanCraft( from, this, null );
 
-				if ( num > 0 )
+				if ( num > 0 && ( num != 1044267 || !Core.SE ) ) // Blacksmithing shows the gump regardless of proximity of an anvil and forge after SE
 				{
 					from.SendLocalizedMessage( num );
 				}

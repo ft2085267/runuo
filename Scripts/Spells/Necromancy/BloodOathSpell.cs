@@ -65,6 +65,9 @@ namespace Server.Spells.Necromancy
 				m_OathTable[Caster] = Caster;
 				m_OathTable[m] = Caster;
 
+				 if ( m.Spell != null )
+					m.Spell.OnCasterHurt();
+				
 				Caster.PlaySound( 0x175 );
 
 				Caster.FixedParticles( 0x375A, 1, 17, 9919, 33, 7, EffectLayer.Waist );
@@ -83,7 +86,7 @@ namespace Server.Spells.Necromancy
 				BuffInfo.AddBuff ( m, new BuffInfo ( BuffIcon.BloodOathCurse, 1075661, duration, m, Caster.Name.ToString () ) );
 
 				m_Table[m] = timer;
-
+				HarmfulSpell( m );
 			}
 
 			FinishSequence();
@@ -126,14 +129,14 @@ namespace Server.Spells.Necromancy
 			{
 				m_Caster = caster;
 				m_Target = target;
-				m_End = DateTime.Now + delay;
+				m_End = DateTime.UtcNow + delay;
 
 				Priority = TimerPriority.TwoFiftyMS;
 			}
 
 			protected override void OnTick()
 			{
-				if ( m_Caster.Deleted || m_Target.Deleted || !m_Caster.Alive || !m_Target.Alive || DateTime.Now >= m_End )
+				if ( m_Caster.Deleted || m_Target.Deleted || !m_Caster.Alive || !m_Target.Alive || DateTime.UtcNow >= m_End )
 				{
 					DoExpire ();
 				}

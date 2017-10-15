@@ -193,13 +193,13 @@ namespace Server.Commands
 				DestroyTeleporter( 5595, 1840, -14, map );
 				DestroyTeleporter( 5595, 1840, -14, map );
 
-				CreateTeleporter( 5594, 1840, -9, 5467, 1804, 7, map, false );
-				CreateTeleporter( 5594, 1841, -9, 5467, 1805, 7, map, false );
+				CreateTeleporter( 5594, 1840, -8, 5467, 1804, 7, map, false );
+				CreateTeleporter( 5594, 1841, -8, 5467, 1805, 7, map, false );
 
 				// Wrong
-				CreateTeleporter( 5824, 631, 0, 2041, 215, 14, map, true );
-				CreateTeleporter( 5825, 631, 0, 2042, 215, 14, map, true );
-				CreateTeleporter( 5826, 631, 0, 2043, 215, 14, map, true );
+				CreateTeleporter( 5824, 631, 5, 2041, 215, 14, map, true );
+				CreateTeleporter( 5825, 631, 5, 2042, 215, 14, map, true );
+				CreateTeleporter( 5825, 631, 5, 2043, 215, 14, map, true );
 				CreateTeleporter( 5698, 662, 0, 5793, 527, 10, map, false );
 
 				DestroyTeleporter( 5863, 525, 15, map );
@@ -1002,6 +1002,9 @@ namespace Server.Commands
 				CreateTeleporter( 328, 1975, 5, 1731, 978, -80, map, false );
 
 				// Dungeon Bedlam
+				CreateTeleporter( 119, 1684, 0, 2068, 1372, -75, map, false );
+				CreateTeleporter( 120, 1684, 0, 2068, 1372, -75, map, false );
+				CreateTeleporter( 121, 1684, 0, 2068, 1372, -75, map, false );
 				CreateTeleporter(  84, 1673, -2, 156, 1613, 0, map, false );
 				CreateTeleporter( 156, 1609, 17,  87, 1673, 0, map, false );
 				CreateTeleporter( 157, 1609, 17,  87, 1673, 0, map, false );

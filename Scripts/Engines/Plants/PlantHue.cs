@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server;
 
 namespace Server.Engines.Plants
@@ -7,11 +7,11 @@ namespace Server.Engines.Plants
 	[Flags]
 	public enum PlantHue
 	{
-		Plain			= 0x1 | Crossable,
+		Plain			= 0x1 | Crossable | Reproduces,
 
-		Red				= 0x2 | Crossable,
-		Blue			= 0x4 | Crossable,
-		Yellow			= 0x8 | Crossable,
+		Red				= 0x2 | Crossable | Reproduces,
+		Blue			= 0x4 | Crossable | Reproduces,
+		Yellow			= 0x8 | Crossable | Reproduces,
 
 		BrightRed		= Red | Bright,
 		BrightBlue		= Blue | Bright,
@@ -33,17 +33,18 @@ namespace Server.Engines.Plants
 		FireRed			= 0x200,
 
 		None			= 0,
+		Reproduces		= 0x2000000,
 		Crossable		= 0x4000000,
 		Bright			= 0x8000000
 	}
 
 	public class PlantHueInfo
 	{
-		private static Hashtable m_Table;
+		private static Dictionary<PlantHue, PlantHueInfo> m_Table;
 
 		static PlantHueInfo()
 		{
-			m_Table = new Hashtable();
+			m_Table = new Dictionary<PlantHue, PlantHueInfo>();
 
 			m_Table[PlantHue.Plain]			= new PlantHueInfo( 0,		1060813, PlantHue.Plain,		0x835 );
 			m_Table[PlantHue.Red]			= new PlantHueInfo( 0x66D,	1060814, PlantHue.Red,			0x24 );
@@ -68,12 +69,12 @@ namespace Server.Engines.Plants
 
 		public static PlantHueInfo GetInfo( PlantHue plantHue )
 		{
-			PlantHueInfo info = m_Table[plantHue] as PlantHueInfo;
+			PlantHueInfo info = null;
 
-			if ( info != null )
+			if (m_Table.TryGetValue(plantHue, out info))
 				return info;
 			else
-				return (PlantHueInfo)m_Table[PlantHue.Plain];
+				return m_Table[PlantHue.Plain];
 		}
 
 		public static PlantHue RandomFirstGeneration()
@@ -85,6 +86,11 @@ namespace Server.Engines.Plants
 				case 2: return PlantHue.Blue;
 				default: return PlantHue.Yellow;
 			}
+		}
+
+		public static bool CanReproduce( PlantHue plantHue )
+		{
+			return (plantHue & PlantHue.Reproduces) != PlantHue.None;
 		}
 
 		public static bool IsCrossable( PlantHue plantHue )

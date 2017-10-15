@@ -19,33 +19,35 @@
  ***************************************************************************/
 
 using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
-using System.Threading;
-using System.Diagnostics;
-
 using Server;
-using Server.Guilds;
 
-namespace Server {
-	public abstract class SaveStrategy {
-		public static SaveStrategy Acquire() {
-			if ( Core.MultiProcessor ) {
+namespace Server
+{
+	public abstract class SaveStrategy
+	{
+		public static SaveStrategy Acquire()
+		{
+			if (Core.MultiProcessor)
+			{
 				int processorCount = Core.ProcessorCount;
 
-				if ( processorCount > 16 ) {
-					return new ParallelSaveStrategy( processorCount );
-				} else {
+				if (processorCount > 2)
+				{
+					return new DualSaveStrategy(); // return new DynamicSaveStrategy(); (4.0 or return new ParallelSaveStrategy(processorCount); (2.0)
+				}
+				else
+				{
 					return new DualSaveStrategy();
 				}
-			} else {
+			}
+			else
+			{
 				return new StandardSaveStrategy();
 			}
 		}
 
 		public abstract string Name { get; }
-		public abstract void Save( SaveMetrics metrics );
+		public abstract void Save(SaveMetrics metrics, bool permitBackgroundWrite);
 
 		public abstract void ProcessDecay();
 	}

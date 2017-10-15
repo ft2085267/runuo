@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Server;
 using Server.Gumps;
 using Server.Network;
+using Server.Mobiles;
 using Server.Multis;
 using Server.Engines.Craft;
 using Server.ContextMenus;
@@ -14,6 +15,15 @@ namespace Server.Items
 	{
 		public static readonly TimeSpan UseDelay = TimeSpan.FromSeconds( 7.0 );
 
+		private BookQuality m_Quality;
+		
+		[CommandProperty( AccessLevel.GameMaster )]		
+		public BookQuality Quality
+		{
+			get{ return m_Quality; }
+			set{ m_Quality = value; InvalidateProperties(); }
+		}
+
 		private List<RunebookEntry> m_Entries;
 		private string m_Description;
 		private int m_CurCharges, m_MaxCharges;
@@ -22,6 +32,8 @@ namespace Server.Items
 		private Mobile m_Crafter;
 		
 		private DateTime m_NextUse;
+		
+		private List<Mobile> m_Openers = new List<Mobile>();
 
 		[CommandProperty( AccessLevel.GameMaster )]
 		public DateTime NextUse
@@ -81,6 +93,18 @@ namespace Server.Items
 			set
 			{
 				m_MaxCharges = value;
+			}
+		}
+		
+		public List<Mobile> Openers
+		{
+			get
+			{
+				return m_Openers;
+			}
+			set
+			{
+				m_Openers = value;
 			}
 		}
 
@@ -154,7 +178,9 @@ namespace Server.Items
 		{
 			base.Serialize( writer );
 
-			writer.Write( (int) 2 );
+			writer.Write( (int) 3 );
+
+			writer.Write( (byte) m_Quality );	
 
 			writer.Write( m_Crafter );
 
@@ -184,6 +210,11 @@ namespace Server.Items
 
 			switch ( version )
 			{
+				case 3:
+				{
+					m_Quality = (BookQuality) reader.ReadByte();		
+					goto case 2;
+				}
 				case 2:
 				{
 					m_Crafter = reader.ReadMobile();
@@ -215,7 +246,9 @@ namespace Server.Items
 
 		public void DropRune( Mobile from, RunebookEntry e, int index )
 		{
-			if ( m_DefaultIndex == index )
+			if ( m_DefaultIndex > index )
+				m_DefaultIndex -= 1;
+			else if ( m_DefaultIndex == index )
 				m_DefaultIndex = -1;
 
 			m_Entries.RemoveAt( index );
@@ -256,11 +289,31 @@ namespace Server.Items
 		{
 			base.GetProperties( list );
 
+			if ( m_Quality == BookQuality.Exceptional )
+				list.Add( 1063341 ); // exceptional
+
 			if ( m_Crafter != null )
 				list.Add( 1050043, m_Crafter.Name ); // crafted by ~1_NAME~
 
 			if ( m_Description != null && m_Description.Length > 0 )
 				list.Add( m_Description );
+		}
+		
+		public override bool OnDragLift( Mobile from )
+		{
+			if ( from.HasGump( typeof( RunebookGump ) ) )
+			{
+				from.SendLocalizedMessage( 500169 ); // You cannot pick that up.
+				return false;
+			}
+			
+			foreach ( Mobile m in m_Openers )
+				if ( IsOpen( m ) )
+					m.CloseGump( typeof( RunebookGump ) );
+				
+			m_Openers.Clear();
+			
+			return true;
 		}
 
 		public override void OnSingleClick( Mobile from )
@@ -276,9 +329,15 @@ namespace Server.Items
 
 		public override void OnDoubleClick( Mobile from )
 		{
-			if ( from.InRange( GetWorldLocation(), (Core.ML ? 3 : 1) ) )
+			if ( from.InRange( GetWorldLocation(), (Core.ML ? 3 : 1) ) && CheckAccess( from ) )
 			{
-				if ( DateTime.Now < NextUse )
+				if ( RootParent is BaseCreature )
+				{
+					from.SendLocalizedMessage( 502402 ); // That is inaccessible.
+					return;
+				}
+
+				if ( DateTime.UtcNow < m_NextUse )
 				{
 					from.SendLocalizedMessage( 502406 ); // This book needs time to recharge.
 					return;
@@ -286,12 +345,15 @@ namespace Server.Items
 
 				from.CloseGump( typeof( RunebookGump ) );
 				from.SendGump( new RunebookGump( from, this ) );
+				
+				m_Openers.Add( from );
 			}
 		}
 
 		public virtual void OnTravel()
 		{
-			NextUse = DateTime.Now + UseDelay;
+			if ( !Core.SA )
+				m_NextUse = DateTime.UtcNow + UseDelay;
 		}
 
 		public override void OnAfterDuped( Item newItem )
@@ -328,9 +390,9 @@ namespace Server.Items
 		{
 			if ( dropped is RecallRune )
 			{
-				if ( !CheckAccess( from ) )
+				if ( IsLockedDown && from.AccessLevel < AccessLevel.GameMaster )
 				{
-					from.SendLocalizedMessage( 502413 ); // That cannot be done while the book is locked down.
+					from.SendLocalizedMessage( 502413, null, 0x35 ); // That cannot be done while the book is locked down.
 				}
 				else if ( IsOpen( from ) )
 				{
@@ -409,6 +471,8 @@ namespace Server.Items
 
 			if ( makersMark )
 				Crafter = from;
+
+			m_Quality = (BookQuality) ( quality - 1 );
 
 			return quality;
 		}

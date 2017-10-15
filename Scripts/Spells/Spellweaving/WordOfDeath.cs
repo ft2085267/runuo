@@ -6,17 +6,14 @@ namespace Server.Spells.Spellweaving
 {
 	public class WordOfDeathSpell : ArcanistSpell
 	{
-		private static SpellInfo m_Info = new SpellInfo(
-                "Word of Death", "Nyraxle",
-				-1
-			);
+		private static SpellInfo m_Info = new SpellInfo( "Word of Death", "Nyraxle", -1 );
 
 		public override TimeSpan CastDelayBase { get { return TimeSpan.FromSeconds( 3.5 ); } }
 
-        public override double RequiredSkill { get { return 80.0; } }
-        public override int RequiredMana { get { return 50; } }
+		public override double RequiredSkill { get { return 80.0; } }
+		public override int RequiredMana { get { return 50; } }
 
-        public WordOfDeathSpell( Mobile caster, Item scroll ) : base( caster, scroll, m_Info )
+		public WordOfDeathSpell( Mobile caster, Item scroll ) : base( caster, scroll, m_Info )
 		{
 		}
 
@@ -41,17 +38,24 @@ namespace Server.Spells.Spellweaving
 
 				Effects.SendMovingParticles( new Entity( Serial.Zero, loc, m.Map ), new Entity( Serial.Zero, m.Location, m.Map ), 0xF5F, 1, 0, true, false, 0x21, 0x3F, 0x251D, 0, 0, EffectLayer.Head, 0 );
 
-				int percentage = 5 + (5 * FocusLevel);
+				double percentage = 0.05 * FocusLevel;
 
 				int damage;
 
-				if( !m.Player && ((m.Hits / m.HitsMax)*100) < percentage )
+				if( !m.Player && (((double)m.Hits / (double)m.HitsMax) < percentage ))
 				{
 					damage = 300;
 				}
 				else
 				{
-					damage = GetNewAosDamage( (int)Math.Max( Caster.Skills.Spellweaving.Value/24, 1 ) + 4, 1, 4, m );
+					int minDamage = (int)Caster.Skills.Spellweaving.Value / 5;
+					int maxDamage = (int)Caster.Skills.Spellweaving.Value / 3;
+					damage = Utility.RandomMinMax(minDamage, maxDamage);
+					int damageBonus = AosAttributes.GetValue( Caster, AosAttribute.SpellDamage );
+					if (m.Player && damageBonus > 15)
+						damageBonus = 15;
+					damage *= damageBonus + 100;
+					damage /= 100;
 				}
 
 				int[] types = new int[4];

@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using Server;
@@ -276,7 +275,7 @@ namespace Server.Mobiles
 
 	public class PlayerVendor : Mobile
 	{
-		private Hashtable m_SellItems;
+		private Dictionary<Item, VendorItem> m_SellItems;
 
 		private Mobile m_Owner;
 		private BaseHouse m_House;
@@ -309,14 +308,14 @@ namespace Server.Mobiles
 
 			ShopName = "Shop Not Yet Named";
 
-			m_SellItems = new Hashtable();
+			m_SellItems = new Dictionary<Item, VendorItem>();
 
 			CantWalk = true;
 
 			if ( !Core.AOS )
 				NameHue = 0x35;
 
-			InitStats( 75, 75, 75 );
+			InitStats( 100, 100, 25 );
 			InitBody();
 			InitOutfit();
 
@@ -325,7 +324,7 @@ namespace Server.Mobiles
 			m_PayTimer = new PayTimer( this, delay );
 			m_PayTimer.Start();
 
-			m_NextPayTime = DateTime.Now + delay;
+			m_NextPayTime = DateTime.UtcNow + delay;
 		}
 
 		public PlayerVendor( Serial serial ) : base( serial )
@@ -336,7 +335,7 @@ namespace Server.Mobiles
 		{
 			base.Serialize( writer );
 
-			writer.Write( (int) 1 ); // version
+			writer.Write( (int) 2 ); // version
 
 			writer.Write( (bool) BaseHouse.NewVendorSystem );
 			writer.Write( (string) m_ShopName );
@@ -368,6 +367,7 @@ namespace Server.Mobiles
 
 			switch ( version )
 			{
+				case 2:
 				case 1:
 				{
 					newVendorSystem = reader.ReadBool();
@@ -383,9 +383,10 @@ namespace Server.Mobiles
 					m_BankAccount = reader.ReadInt();
 					m_HoldGold = reader.ReadInt();
 
-					m_SellItems = new Hashtable();
-
 					int count = reader.ReadInt();
+
+					m_SellItems = new Dictionary<Item, VendorItem>(count);
+
 					for ( int i = 0; i < count; i++ )
 					{
 						Item item = reader.ReadItem();
@@ -396,7 +397,7 @@ namespace Server.Mobiles
 
 						string description = reader.ReadString();
 
-						DateTime created = version < 1 ? DateTime.Now : reader.ReadDateTime();
+						DateTime created = version < 1 ? DateTime.UtcNow : reader.ReadDateTime();
 
 						if ( item != null )
 						{
@@ -422,7 +423,7 @@ namespace Server.Mobiles
 					Timer.DelayCall( TimeSpan.Zero, new TimerCallback( FixDresswear ) );
 				}
 
-				m_NextPayTime = DateTime.Now + PayTimer.GetInterval();
+				m_NextPayTime = DateTime.UtcNow + PayTimer.GetInterval();
 
 				if ( newVendorSystemActivated )
 				{
@@ -431,7 +432,10 @@ namespace Server.Mobiles
 				}
 			}
 
-			TimeSpan delay = m_NextPayTime - DateTime.Now;
+			if ( version < 2 && RawStr == 75 && RawDex == 75 && RawInt == 75 )
+				InitStats( 100, 100, 25 );
+
+			TimeSpan delay = m_NextPayTime - DateTime.UtcNow;
 
 			m_PayTimer = new PayTimer( this, delay > TimeSpan.Zero ? delay : TimeSpan.Zero );
 			m_PayTimer.Start();
@@ -775,12 +779,14 @@ namespace Server.Mobiles
 
 		public VendorItem GetVendorItem( Item item )
 		{
-			return (VendorItem) m_SellItems[item];
+			VendorItem v = null;
+			m_SellItems.TryGetValue(item, out v);
+			return v;
 		}
 
 		private VendorItem SetVendorItem( Item item, int price, string description )
 		{
-			return SetVendorItem( item, price, description, DateTime.Now );
+			return SetVendorItem( item, price, description, DateTime.UtcNow );
 		}
 
 		private VendorItem SetVendorItem( Item item, int price, string description, DateTime created )
@@ -1105,7 +1111,7 @@ namespace Server.Mobiles
 			{
 				vendor.SayTo( from, 503202 ); // This item is not for sale.
 			}
-			else if ( vi.Created + TimeSpan.FromMinutes( 1.0 ) > DateTime.Now )
+			else if ( vi.Created + TimeSpan.FromMinutes( 1.0 ) > DateTime.UtcNow )
 			{
 				from.SendMessage( "You cannot buy this item right now.  Please wait one minute and try again." );
 			}
@@ -1305,8 +1311,19 @@ namespace Server.Mobiles
 				}
 				else
 				{
-					OpenBackpack( from );
-
+					if ( WasNamed( e.Speech ) )
+						OpenBackpack( from );
+					else
+					{
+						IPooledEnumerable mobiles = e.Mobile.GetMobilesInRange( 2 );
+						
+						foreach ( Mobile m in mobiles )
+							if ( m is PlayerVendor && m.CanSee( e.Mobile ) && m.InLOS( e.Mobile ) )
+								((PlayerVendor)m).OpenBackpack( from );
+						
+						mobiles.Free();
+					}
+					
 					e.Handled = true;
 				}
 			}
@@ -1373,7 +1390,7 @@ namespace Server.Mobiles
 
 			protected override void OnTick()
 			{
-				m_Vendor.m_NextPayTime = DateTime.Now + this.Interval;
+				m_Vendor.m_NextPayTime = DateTime.UtcNow + this.Interval;
 
 				int pay;
 				int totalGold;
@@ -1457,16 +1474,14 @@ namespace Server.Mobiles
 				int price;
 				string description;
 
-				try
+				if ( int.TryParse( firstWord, out price ) )
 				{
-					price = Convert.ToInt32( firstWord );
-
 					if ( sep >= 0 )
 						description = text.Substring( sep + 1 ).Trim();
 					else
 						description = "";
 				}
-				catch
+				else
 				{
 					price = -1;
 					description = text.Trim();
@@ -1550,14 +1565,9 @@ namespace Server.Mobiles
 				text = text.Trim();
 
 				int amount;
-				try
-				{
-					amount = Convert.ToInt32( text );
-				}
-				catch
-				{
+
+				if ( !int.TryParse( text, out amount ) )
 					amount = 0;
-				}
 
 				GiveGold( from, amount );
 			}

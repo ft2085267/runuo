@@ -24,9 +24,6 @@ namespace Server
 			}
 		}
 
-		private static readonly ClientVersion m_RequiredClient = new ClientVersion( "5.0.2b" );
-		public static ClientVersion RequiredClient { get { return m_RequiredClient; } }
-
 		#region Properties
 		private BuffIcon m_ID;
 		public BuffIcon ID { get { return m_ID; } }
@@ -77,7 +74,7 @@ namespace Server
 			: this( iconID, titleCliloc, secondaryCliloc )
 		{
 			m_TimeLength = length;
-			m_TimeStart = DateTime.Now;
+			m_TimeStart = DateTime.UtcNow;
 
 			m_Timer = Timer.DelayCall( length, new TimerCallback(
 				delegate
@@ -150,7 +147,7 @@ namespace Server
 
 		#endregion
 
-		#region Convience Methods
+		#region Convenience Methods
 		public static void AddBuff( Mobile m, BuffInfo b )
 		{
 			PlayerMobile pm = m as PlayerMobile;
@@ -187,26 +184,26 @@ namespace Server
 		EvilOmen,
 		UnknownStandingSwirl,	//Which is healing throttle & Stamina throttle?
 		UnknownKneelingSword,
-		DivineFury,
-		EnemyOfOne,
+		DivineFury,			//*
+		EnemyOfOne,			//*
 		HidingAndOrStealth,	//*
 		ActiveMeditation,	//*
-		BloodOathCaster,
-		BloodOathCurse,
+		BloodOathCaster,	//*
+		BloodOathCurse,		//*
 		CorpseSkin,			//*
 		Mindrot,			//*
 		PainSpike,			//*
 		Strangle,
 		GiftOfRenewal,		//*
-		AttuneWeapon,
-		Thunderstorm,
-		EssenceOfWind,
-		EtherealVoyage,
-		GiftOfLife,
-		ArcaneEmpowerment,
+		AttuneWeapon,		//*
+		Thunderstorm,		//*
+		EssenceOfWind,		//*
+		EtherealVoyage,		//*
+		GiftOfLife,			//*
+		ArcaneEmpowerment,	//*
 		MortalStrike,
-		ReactiveArmor,
-		Protection,
+		ReactiveArmor,		//*
+		Protection,			//*
 		ArchProtection,
 		MagicReflection,	//*
 		Incognito,			//*
@@ -220,20 +217,27 @@ namespace Server
 		Clumsy,				//*
 		FeebleMind,			//*
 		Weaken,				//*
-		Curse,			
+		Curse,				//*
 		MassCurse,
 		Agility,			//*
 		Cunning,			//*
 		Strength,			//*
-		Bless
+        Bless,				//*
+        Sleep,
+        StoneForm,
+        SpellPlague,
+        SpellTrigger,
+        NetherBolt,
+        Fly      
 	}
 
-	public class AddBuffPacket : Packet
+	public sealed class AddBuffPacket : Packet
 	{
 		public AddBuffPacket( Mobile m, BuffInfo info )
-			: this( m, info.ID, info.TitleCliloc, info.SecondaryCliloc, info.Args, (info.TimeStart != DateTime.MinValue) ? ((info.TimeStart + info.TimeLength) - DateTime.Now) : TimeSpan.Zero )
+			: this( m, info.ID, info.TitleCliloc, info.SecondaryCliloc, info.Args, (info.TimeStart != DateTime.MinValue) ? ((info.TimeStart + info.TimeLength) - DateTime.UtcNow) : TimeSpan.Zero )
 		{
 		}
+
 		public AddBuffPacket( Mobile mob, BuffIcon iconID, int titleCliloc, int secondaryCliloc, TextDefinition args, TimeSpan length )
 			: base( 0xDF )
 		{
@@ -282,7 +286,7 @@ namespace Server
 		}
 	}
 
-	public class RemoveBuffPacket : Packet
+	public sealed class RemoveBuffPacket : Packet
 	{
 		public RemoveBuffPacket( Mobile mob, BuffInfo info )
 			: this( mob, info.ID )
@@ -295,12 +299,10 @@ namespace Server
 			this.EnsureCapacity( 13 );
 			m_Stream.Write( (int)mob.Serial );
 
-
 			m_Stream.Write( (short)iconID );	//ID
 			m_Stream.Write( (short)0x0 );	//Type 0 for removal. 1 for add 2 for Data
 
 			m_Stream.Fill( 4 );
 		}
 	}
-
 }

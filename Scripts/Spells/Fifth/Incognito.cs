@@ -62,6 +62,10 @@ namespace Server.Spells.Fifth
 			{
 				Caster.SendLocalizedMessage( 1042402 ); // You cannot use incognito while wearing body paint
 			}
+			else if ( DisguiseTimers.IsDisguised( Caster ) )
+			{
+				Caster.SendLocalizedMessage( 1061631 ); // You can't do that while disguised.
+			}
 			else if ( !Caster.CanBeginAction( typeof( PolymorphSpell ) ) || Caster.IsBodyMod )
 			{
 				DoFizzle();
@@ -70,23 +74,18 @@ namespace Server.Spells.Fifth
 			{
 				if ( Caster.BeginAction( typeof( IncognitoSpell ) ) )
 				{
-					DisguiseGump.StopTimer( Caster );
+					DisguiseTimers.StopTimer( Caster );
 
-					Caster.BodyMod = Utility.RandomList( 400, 401 );
-					Caster.HueMod = Utility.RandomSkinHue();
-					Caster.NameMod = Caster.Body.IsFemale ? NameList.RandomName( "female" ) : NameList.RandomName( "male" );
+					Caster.HueMod = Caster.Race.RandomSkinHue();
+					Caster.NameMod = Caster.Female ? NameList.RandomName( "female" ) : NameList.RandomName( "male" );
 
 					PlayerMobile pm = Caster as PlayerMobile;
 
-					if ( pm != null )
+					if ( pm != null && pm.Race != null )
 					{
-						if ( pm.Body.IsFemale )
-							pm.SetHairMods( Utility.RandomList( m_HairIDs ), 0 );
-						else
-							pm.SetHairMods( Utility.RandomList( m_HairIDs ), Utility.RandomList( m_BeardIDs ) );
-
-							pm.HairHue = Utility.RandomHairHue();
-							pm.FacialHairHue = Utility.RandomHairHue();
+						pm.SetHairMods( pm.Race.RandomHair( pm.Female ), pm.Race.RandomFacialHair( pm.Female ) );
+						pm.HairHue = pm.Race.RandomHairHue();
+						pm.FacialHairHue = pm.Race.RandomHairHue();
 					}
 
 					Caster.FixedParticles( 0x373A, 10, 15, 5036, EffectLayer.Head );
@@ -117,7 +116,7 @@ namespace Server.Spells.Fifth
 				}
 				else
 				{
-					Caster.SendLocalizedMessage( 1005559 ); // This spell is already in effect.
+					Caster.SendLocalizedMessage( 1079022 ); // You're already incognitoed!
 				}
 			}
 

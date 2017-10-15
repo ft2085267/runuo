@@ -31,8 +31,7 @@ namespace Server.Items
 			return true;
 		}
 
-		public static readonly TimeSpan DefenderRemountDelay = TimeSpan.FromSeconds( 10.0 ); // TODO: Taken from bola script, needs to be verified
-		public static readonly TimeSpan AttackerRemountDelay = TimeSpan.FromSeconds( 3.0 );
+		public static readonly TimeSpan RemountDelay = TimeSpan.FromSeconds( 10.0 ); 
 
 		public override void OnHit( Mobile attacker, Mobile defender, int damage )
 		{
@@ -42,14 +41,14 @@ namespace Server.Items
 			if ( defender is ChaosDragoon || defender is ChaosDragoonElite )
 				return;
 
-			if ( attacker.Mounted && !(defender.Weapon is Lance) ) // TODO: Should there be a message here?
+			if ( attacker.Mounted && ( !(attacker.Weapon is Lance) || !(defender.Weapon is Lance) ) ) // TODO: Should there be a message here?
 				return;
 
 			ClearCurrentAbility( attacker );
 
 			IMount mount = defender.Mount;
 
-			if ( mount == null )
+			if (mount == null && !Server.Spells.Ninjitsu.AnimalForm.UnderTransformation( defender ) )
 			{
 				attacker.SendLocalizedMessage( 1060848 ); // This attack only works on mounted targets
 				return;
@@ -73,16 +72,38 @@ namespace Server.Items
 			defender.PlaySound( 0x140 );
 			defender.FixedParticles( 0x3728, 10, 15, 9955, EffectLayer.Waist );
 
-			mount.Rider = null;
-
-			BaseMount.SetMountPrevention( defender, BlockMountType.Dazed, DefenderRemountDelay );
-			if( Core.ML && attacker is BaseCreature && ((BaseCreature)attacker).ControlMaster != null )
+			if (defender is PlayerMobile)
 			{
-				BaseMount.SetMountPrevention( ((BaseCreature)attacker).ControlMaster, BlockMountType.DismountRecovery, AttackerRemountDelay );
+				if (Server.Spells.Ninjitsu.AnimalForm.UnderTransformation(defender))
+				{
+					defender.SendLocalizedMessage(1114066, attacker.Name); // ~1_NAME~ knocked you out of animal form!
+				}
+				else if (defender.Mounted)
+				{
+					defender.SendLocalizedMessage(1040023); // You have been knocked off of your mount!
+				}
+
+				(defender as PlayerMobile).SetMountBlock(BlockMountType.Dazed, TimeSpan.FromSeconds(10), true);
 			}
 			else
 			{
-				BaseMount.SetMountPrevention( attacker, BlockMountType.DismountRecovery, AttackerRemountDelay );
+				defender.Mount.Rider = null;
+			}
+
+			if( attacker is PlayerMobile )
+			{
+				(attacker as PlayerMobile).SetMountBlock(BlockMountType.DismountRecovery, RemountDelay, true );
+			}
+			else if( Core.ML && attacker is BaseCreature )
+			{
+				BaseCreature bc = attacker as BaseCreature;
+
+				if( bc.ControlMaster is PlayerMobile )
+				{
+					PlayerMobile pm = bc.ControlMaster as PlayerMobile;
+
+					pm.SetMountBlock(BlockMountType.DismountRecovery, RemountDelay, false );
+				}
 			}
 				
 			if ( !attacker.Mounted )

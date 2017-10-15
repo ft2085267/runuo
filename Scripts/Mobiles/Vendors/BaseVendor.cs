@@ -25,14 +25,18 @@ namespace Server.Mobiles
 	{
 		private const int MaxSell = 500;
 
-		protected abstract ArrayList SBInfos { get; }
+		protected abstract List<SBInfo> SBInfos { get; }
 
 		private ArrayList m_ArmorBuyInfo = new ArrayList();
 		private ArrayList m_ArmorSellInfo = new ArrayList();
 
 		private DateTime m_LastRestock;
 
+		private DateTime m_NextTrickOrTreat;
+
 		public override bool CanTeach { get { return true; } }
+
+		public override bool BardImmune { get { return true; } }
 
 		public override bool PlayerRangeSensitive { get { return true; } }
 
@@ -42,7 +46,9 @@ namespace Server.Mobiles
 
 		public virtual NpcGuild NpcGuild { get { return NpcGuild.None; } }
 
-		public virtual bool IsInvulnerable { get { return true; } }
+		public override bool IsInvulnerable { get { return true; } }
+
+		public virtual DateTime NextTrickOrTreat { get { return m_NextTrickOrTreat; } set { m_NextTrickOrTreat = value; } }
 
 		public override bool ShowFameTitle { get { return false; } }
 
@@ -101,7 +107,7 @@ namespace Server.Mobiles
 			private BaseVendor m_Vendor;
 
 			public BulkOrderInfoEntry( Mobile from, BaseVendor vendor )
-				: base( 6152, 6 )
+				: base( 6152 )
 			{
 				m_From = from;
 				m_Vendor = vendor;
@@ -170,7 +176,7 @@ namespace Server.Mobiles
 			pack.Visible = false;
 			AddItem( pack );
 
-			m_LastRestock = DateTime.Now;
+			m_LastRestock = DateTime.UtcNow;
 		}
 
 		public BaseVendor( Serial serial )
@@ -222,7 +228,7 @@ namespace Server.Mobiles
 
 		protected void LoadSBInfo()
 		{
-			m_LastRestock = DateTime.Now;
+			m_LastRestock = DateTime.UtcNow;
 
 			for ( int i = 0; i < m_ArmorBuyInfo.Count; ++i )
 			{
@@ -258,9 +264,6 @@ namespace Server.Mobiles
 
 			SpeechHue = Utility.RandomDyedHue();
 			Hue = Utility.RandomSkinHue();
-
-			if ( IsInvulnerable && !Core.AOS )
-				NameHue = 0x35;
 
 			if ( Female = GetGender() )
 			{
@@ -298,14 +301,6 @@ namespace Server.Mobiles
 		public virtual VendorShoeType ShoeType
 		{
 			get { return VendorShoeType.Shoes; }
-		}
-
-		public virtual int RandomBrightHue()
-		{
-			if ( 0.1 > Utility.RandomDouble() )
-				return Utility.RandomList( 0x62, 0x71 );
-
-			return Utility.RandomList( 0x03, 0x0D, 0x13, 0x1C, 0x21, 0x30, 0x37, 0x3A, 0x44, 0x59 );
 		}
 
 		public virtual void CheckMorph()
@@ -433,7 +428,7 @@ namespace Server.Mobiles
 			FacialHairItemID = 0;
 
 			Body = 0x2F6;
-			Hue = RandomBrightHue() | 0x8000;
+			Hue = Utility.RandomBrightHue() | 0x8000;
 			Name = NameList.RandomName( "gargoyle vendor" );
 
 			CapitalizeTitle();
@@ -515,7 +510,7 @@ namespace Server.Mobiles
 
 		public virtual void Restock()
 		{
-			m_LastRestock = DateTime.Now;
+			m_LastRestock = DateTime.UtcNow;
 
 			IBuyItemInfo[] buyInfo = this.GetBuyInfo();
 
@@ -539,17 +534,17 @@ namespace Server.Mobiles
 				return;
 			}
 
-			if ( DateTime.Now - m_LastRestock > RestockDelay )
+			if ( DateTime.UtcNow - m_LastRestock > RestockDelay )
 				Restock();
 
 			UpdateBuyInfo();
 
 			int count = 0;
-			ArrayList list;
+			List<BuyItemState> list;
 			IBuyItemInfo[] buyInfo = this.GetBuyInfo();
 			IShopSellInfo[] sellInfo = this.GetSellInfo();
 
-			list = new ArrayList( buyInfo.Length );
+			list = new List<BuyItemState>( buyInfo.Length );
 			Container cont = this.BuyPack;
 
 			List<ObjectPropertyList> opls = null;
@@ -588,7 +583,7 @@ namespace Server.Mobiles
 
 				Item item = playerItems[i];
 
-				if ( ( item.LastMoved + InventoryDecayTime ) <= DateTime.Now )
+				if ( ( item.LastMoved + InventoryDecayTime ) <= DateTime.UtcNow )
 					item.Delete();
 			}
 
@@ -632,15 +627,23 @@ namespace Server.Mobiles
 
 				SendPacksTo( from );
 
-				if ( from.NetState == null )
+				NetState ns = from.NetState;
+
+				if ( ns == null )
 					return;
 
-				if ( from.NetState.IsPost6017 )
+				if ( ns.ContainerGridLines )
 					from.Send( new VendorBuyContent6017( list ) );
 				else
 					from.Send( new VendorBuyContent( list ) );
+
 				from.Send( new VendorBuyList( this, list ) );
-				from.Send( new DisplayBuyList( this ) );
+
+				if ( ns.HighSeas )
+					from.Send( new DisplayBuyListHS( this ) );
+				else
+					from.Send( new DisplayBuyList( this ) );
+
 				from.Send( new MobileStatusExtended( from ) );//make sure their gold amount is sent
 
 				if ( opls != null ) {
@@ -707,7 +710,7 @@ namespace Server.Mobiles
 			{
 				IShopSellInfo[] info = GetSellInfo();
 
-				Hashtable table = new Hashtable();
+				Dictionary<Item, SellItemState> table = new Dictionary<Item, SellItemState>();
 
 				foreach ( IShopSellInfo ssi in info )
 				{
@@ -727,7 +730,7 @@ namespace Server.Mobiles
 				{
 					SendPacksTo( from );
 
-					from.Send( new VendorSellList( this, table ) );
+					from.Send( new VendorSellList( this, table.Values ) );
 				}
 				else
 				{
@@ -738,9 +741,18 @@ namespace Server.Mobiles
 
 		public override bool OnDragDrop( Mobile from, Item dropped )
 		{
+			/* TODO: Thou art giving me? and fame/karma for gold gifts */
+
 			if ( dropped is SmallBOD || dropped is LargeBOD )
 			{
-				if ( !IsValidBulkOrder( dropped ) || !SupportsBulkOrders( from ) )
+				PlayerMobile pm = from as PlayerMobile;
+
+				if ( Core.ML && pm != null && pm.NextBODTurnInTime > DateTime.UtcNow )
+				{
+					SayTo( from, 1079976 ); // You'll have to wait a few seconds while I inspect the last order.
+					return false;
+				}
+				else if ( !IsValidBulkOrder( dropped ) )
 				{
 					SayTo( from, 1045130 ); // That order is for some other shopkeeper.
 					return false;
@@ -775,6 +787,9 @@ namespace Server.Mobiles
 
 				OnSuccessfulBulkOrderReceive( from );
 
+				if ( Core.ML && pm != null )
+					pm.NextBODTurnInTime = DateTime.UtcNow + TimeSpan.FromSeconds( 10.0 );
+
 				dropped.Delete();
 				return true;
 			}
@@ -796,7 +811,7 @@ namespace Server.Mobiles
 			return null;
 		}
 
-		private void ProcessSinglePurchase( BuyItemResponse buy, IBuyItemInfo bii, ArrayList validBuy, ref int controlSlots, ref bool fullPurchase, ref int totalCost )
+		private void ProcessSinglePurchase( BuyItemResponse buy, IBuyItemInfo bii, List<BuyItemResponse> validBuy, ref int controlSlots, ref bool fullPurchase, ref int totalCost )
 		{
 			int amount = buy.Amount;
 
@@ -874,8 +889,11 @@ namespace Server.Mobiles
 				m.MoveToWorld( buyer.Location, buyer.Map );
 				m.PlaySound( m.GetIdleSound() );
 
-				if ( m is BaseCreature )
-					( (BaseCreature)m ).SetControlMaster( buyer );
+                if (m is BaseCreature)
+                {
+                    ((BaseCreature)m).SetControlMaster(buyer);
+                    ((BaseCreature)m).ControlOrder = OrderType.Stop;
+                }
 
 				for ( int i = 1; i < amount; ++i )
 				{
@@ -886,14 +904,17 @@ namespace Server.Mobiles
 						m.Direction = (Direction)Utility.Random( 8 );
 						m.MoveToWorld( buyer.Location, buyer.Map );
 
-						if ( m is BaseCreature )
-							( (BaseCreature)m ).SetControlMaster( buyer );
+                        if (m is BaseCreature)
+                        {
+                            ((BaseCreature)m).SetControlMaster(buyer);
+                            ((BaseCreature)m).ControlOrder = OrderType.Stop;
+                        }
 					}
 				}
 			}
 		}
 
-		public virtual bool OnBuyItems( Mobile buyer, ArrayList list )
+		public virtual bool OnBuyItems( Mobile buyer, List<BuyItemResponse> list )
 		{
 			if ( !IsActiveSeller )
 				return false;
@@ -912,7 +933,7 @@ namespace Server.Mobiles
 			IBuyItemInfo[] buyInfo = this.GetBuyInfo();
 			IShopSellInfo[] info = GetSellInfo();
 			int totalCost = 0;
-			ArrayList validBuy = new ArrayList( list.Count );
+			List<BuyItemResponse> validBuy = new List<BuyItemResponse>( list.Count );
 			Container cont;
 			bool bought = false;
 			bool fromBank = false;
@@ -989,7 +1010,7 @@ namespace Server.Mobiles
 				if ( cont.ConsumeTotal( typeof( Gold ), totalCost ) )
 					bought = true;
 				else if ( totalCost < 2000 )
-					SayTo( buyer, 500192 );//Begging thy pardon, but thou casnt afford that.
+					SayTo( buyer, 500192 ); // Begging thy pardon, but thou canst not afford that.
 			}
 
 			if ( !bought && totalCost >= 2000 )
@@ -1088,9 +1109,9 @@ namespace Server.Mobiles
 				if ( buyer.AccessLevel >= AccessLevel.GameMaster )
 					SayTo( buyer, true, "I would not presume to charge thee anything.  Here are the goods you requested." );
 				else if ( fromBank )
-					SayTo( buyer, true, "The total of thy purchase is {0} gold, which has been withdrawn from your bank account.  My thanks for the patronage.", totalCost );
+                    SayTo(buyer, 1151638, totalCost.ToString());//The total of your purchase is ~1_val~ gold, which has been drawn from your bank account.  My thanks for the patronage.
 				else
-					SayTo( buyer, true, "The total of thy purchase is {0} gold.  My thanks for the patronage.", totalCost );
+                    SayTo(buyer, 1151639, totalCost.ToString());//The total of your purchase is ~1_val~ gold.  My thanks for the patronage.
 			}
 			else
 			{
@@ -1123,7 +1144,7 @@ namespace Server.Mobiles
 			return true;
 		}
 
-		public virtual bool OnSellItems( Mobile seller, ArrayList list )
+		public virtual bool OnSellItems( Mobile seller, List<SellItemResponse> list )
 		{
 			if ( !IsActiveBuyer )
 				return false;
@@ -1144,8 +1165,6 @@ namespace Server.Mobiles
 			int GiveGold = 0;
 			int Sold = 0;
 			Container cont;
-			ArrayList delete = new ArrayList();
-			ArrayList drop = new ArrayList();
 
 			foreach ( SellItemResponse resp in list )
 			{
@@ -1275,12 +1294,12 @@ namespace Server.Mobiles
 
 			writer.Write( (int)1 ); // version
 
-			ArrayList sbInfos = this.SBInfos;
+			List<SBInfo> sbInfos = this.SBInfos;
 
 			for ( int i = 0; sbInfos != null && i < sbInfos.Count; ++i )
 			{
-				SBInfo sbInfo = (SBInfo)sbInfos[i];
-				ArrayList buyInfo = sbInfo.BuyInfo;
+				SBInfo sbInfo = sbInfos[i];
+				List<GenericBuyInfo> buyInfo = sbInfo.BuyInfo;
 
 				for ( int j = 0; buyInfo != null && j < buyInfo.Count; ++j )
 				{
@@ -1318,7 +1337,7 @@ namespace Server.Mobiles
 
 			LoadSBInfo();
 
-			ArrayList sbInfos = this.SBInfos;
+			List<SBInfo> sbInfos = this.SBInfos;
 
 			switch ( version )
 			{
@@ -1338,8 +1357,8 @@ namespace Server.Mobiles
 
 								if ( sbInfoIndex >= 0 && sbInfoIndex < sbInfos.Count )
 								{
-									SBInfo sbInfo = (SBInfo)sbInfos[sbInfoIndex];
-									ArrayList buyInfo = sbInfo.BuyInfo;
+									SBInfo sbInfo = sbInfos[sbInfoIndex];
+									List<GenericBuyInfo> buyInfo = sbInfo.BuyInfo;
 
 									if ( buyInfo != null && buyInfoIndex >= 0 && buyInfoIndex < buyInfo.Count )
 									{
@@ -1370,9 +1389,6 @@ namespace Server.Mobiles
 			if ( IsParagon )
 				IsParagon = false;
 
-			if ( Core.AOS && NameHue == 0x35 )
-				NameHue = -1;
-
 			Timer.DelayCall( TimeSpan.Zero, new TimerCallback( CheckMorph ) );
 		}
 
@@ -1380,14 +1396,14 @@ namespace Server.Mobiles
 		{
 			if ( from.Alive && IsActiveVendor )
 			{
+				if ( SupportsBulkOrders( from ) )
+					list.Add( new BulkOrderInfoEntry( from, this ) );
+				
 				if ( IsActiveSeller )
 					list.Add( new VendorBuyEntry( from, this ) );
 
 				if ( IsActiveBuyer )
 					list.Add( new VendorSellEntry( from, this ) );
-
-				if ( SupportsBulkOrders( from ) )
-					list.Add( new BulkOrderInfoEntry( from, this ) );
 			}
 
 			base.AddCustomContextEntries( from, list );
@@ -1401,11 +1417,6 @@ namespace Server.Mobiles
 		public virtual IBuyItemInfo[] GetBuyInfo()
 		{
 			return (IBuyItemInfo[])m_ArmorBuyInfo.ToArray( typeof( IBuyItemInfo ) );
-		}
-
-		public override bool CanBeDamaged()
-		{
-			return !IsInvulnerable;
 		}
 	}
 }

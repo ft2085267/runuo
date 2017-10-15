@@ -47,13 +47,18 @@ namespace Server.Mobiles
 			if ( Core.ML && Utility.RandomDouble() < .33 )
 				PackItem( Engines.Plants.Seed.RandomPeculiarSeed(2) );
 
-			switch ( Utility.Random( 4 ) )
+			Item orepile = null; /* no trust, no love :( */
+
+			switch (Utility.Random(4))
 			{
-				case 0: PackItem( new DullCopperOre( Utility.RandomMinMax( 1, 10 ) ) ); break;
-				case 1: PackItem( new ShadowIronOre( Utility.RandomMinMax( 1, 10 ) ) ); break;
-				case 2: PackItem( new CopperOre( Utility.RandomMinMax( 1, 10 ) ) ); break;
-				case 3: PackItem( new BronzeOre( Utility.RandomMinMax( 1, 10 ) ) ); break;
+				case 0: orepile = new DullCopperOre(); break;
+				case 1: orepile = new ShadowIronOre(); break;
+				case 2: orepile = new CopperOre(); break;
+				default: orepile = new BronzeOre(); break;
 			}
+			orepile.Amount = Utility.RandomMinMax(1, 10);
+			orepile.ItemID = 0x19B9;
+			PackItem(orepile);
 
 			// TODO: skeleton
 		}

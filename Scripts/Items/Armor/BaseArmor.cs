@@ -249,7 +249,11 @@ namespace Server.Items
 					UnscaleDurability();
 
 					m_Resource = value;
-					Hue = CraftResources.GetHue( m_Resource );
+
+					if ( CraftItem.RetainsColor( this.GetType() ) )
+					{
+						Hue = CraftResources.GetHue(m_Resource);
+					}
 
 					Invalidate();
 					InvalidateProperties();
@@ -663,7 +667,7 @@ namespace Server.Items
 			return v;
 		}
 
-		public override void OnAdded( object parent )
+		public override void OnAdded(IEntity parent)
 		{
 			if ( parent is Mobile )
 			{
@@ -1261,7 +1265,7 @@ namespace Server.Items
 			return base.OnEquip( from );
 		}
 
-		public override void OnRemoved( object parent )
+		public override void OnRemoved(IEntity parent)
 		{
 			if ( parent is Mobile )
 			{
@@ -1527,6 +1531,9 @@ namespace Server.Items
 			if ( (prop = m_AosAttributes.WeaponSpeed) != 0 )
 				list.Add( 1060486, prop.ToString() ); // swing speed increase ~1_val~%
 
+			if ( Core.ML && (prop = m_AosAttributes.IncreasedKarmaLoss) != 0 )
+				list.Add( 1075210, prop.ToString() ); // Increased Karma Loss ~1val~%
+
 			base.AddResistanceProperties( list );
 
 			if ( (prop = GetDurabilityBonus()) > 0 )
@@ -1614,7 +1621,8 @@ namespace Server.Items
 
 			if( Quality == ArmorQuality.Exceptional )
 			{
-				DistributeBonuses( (tool is BaseRunicTool ? 6 : Core.SE ? 15 : 14) ); // Not sure since when, but right now 15 points are added, not 14.
+				if ( !( Core.ML && this is BaseShield ))		// Guessed Core.ML removed exceptional resist bonuses from crafted shields
+					DistributeBonuses( (tool is BaseRunicTool ? 6 : Core.SE ? 15 : 14) ); // Not sure since when, but right now 15 points are added, not 14.
 
 				if( Core.ML && !(this is BaseShield) )
 				{

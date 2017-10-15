@@ -1,12 +1,12 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server.Items;
 
 namespace Server.Mobiles
 {
 	public class SBTailor: SBInfo
 	{
-		private ArrayList m_BuyInfo = new InternalBuyInfo();
+		private List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
 		private IShopSellInfo m_SellInfo = new InternalSellInfo();
 
 		public SBTailor()
@@ -14,13 +14,12 @@ namespace Server.Mobiles
 		}
 
 		public override IShopSellInfo SellInfo { get { return m_SellInfo; } }
-		public override ArrayList BuyInfo { get { return m_BuyInfo; } }
+		public override List<GenericBuyInfo> BuyInfo { get { return m_BuyInfo; } }
 
-		public class InternalBuyInfo : ArrayList
+		public class InternalBuyInfo : List<GenericBuyInfo>
 		{
 			public InternalBuyInfo()
 			{
-
 				Add( new GenericBuyInfo( typeof( SewingKit ), 3, 20, 0xF9D, 0 ) ); 
 				Add( new GenericBuyInfo( typeof( Scissors ), 11, 20, 0xF9F, 0 ) );
 				Add( new GenericBuyInfo( typeof( DyeTub ), 8, 20, 0xFAB, 0 ) ); 

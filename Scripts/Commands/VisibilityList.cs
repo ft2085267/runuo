@@ -120,10 +120,7 @@ namespace Server.Commands
 							if ( ns != null ) {
 								if ( targ.CanSee( from ) )
 								{
-									if ( ns.IsPost7000 )
-										ns.Send( new MobileIncoming( targ, from ) );
-									else
-										ns.Send( new MobileIncomingOld( targ, from ) );
+									ns.Send(MobileIncoming.Create(ns, targ, from));
 
 									if ( ObjectPropertyList.Enabled )
 									{

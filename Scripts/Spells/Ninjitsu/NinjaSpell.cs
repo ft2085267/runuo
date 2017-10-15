@@ -13,6 +13,7 @@ namespace Server.Spells.Ninjitsu
 		public abstract int RequiredMana{ get; }
 
 		public override SkillName CastSkill{ get{ return SkillName.Ninjitsu; } }
+		public override SkillName DamageSkill{ get{ return SkillName.Ninjitsu; } }
 
 		public override bool RevealOnCast{ get{ return false; } }
 		public override bool ClearHandsOnCast{ get{ return false; } }
@@ -36,7 +37,6 @@ namespace Server.Spells.Ninjitsu
 			if ( from.NetState == null )
 				return false;
 
-			//return ( (from.NetState.Flags & 0x10) != 0 );
 			return from.NetState.SupportsExpansion( Expansion.SE );
 		}
 

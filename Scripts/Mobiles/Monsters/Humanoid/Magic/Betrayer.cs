@@ -53,7 +53,25 @@ namespace Server.Mobiles
 			if ( 0.02 > Utility.RandomDouble() )
 				PackItem( new BlackthornWelcomeBook() );
 
-			m_NextAbilityTime = DateTime.Now + TimeSpan.FromSeconds( Utility.RandomMinMax( 5, 30 ) );
+			m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds( Utility.RandomMinMax( 5, 30 ) );
+		}
+
+		public override void OnDeath( Container c )
+		{
+			base.OnDeath( c );
+
+			if ( 0.05 > Utility.RandomDouble() )
+			{
+				if ( !IsParagon )
+				{
+					if ( 0.75 > Utility.RandomDouble() )
+						c.DropItem( DawnsMusicGear.RandomCommon );
+					else
+						c.DropItem( DawnsMusicGear.RandomUncommon );
+				}
+				else
+					c.DropItem( DawnsMusicGear.RandomRare );
+			}
 		}
 
 		public override int GetDeathSound()
@@ -128,10 +146,10 @@ namespace Server.Mobiles
 		{
 			Mobile combatant = Combatant;
 
-			if ( DateTime.Now < m_NextAbilityTime || combatant == null || combatant.Deleted || combatant.Map != Map || !InRange( combatant, 3 ) || !CanBeHarmful( combatant ) || !InLOS( combatant ) )
+			if ( DateTime.UtcNow < m_NextAbilityTime || combatant == null || combatant.Deleted || combatant.Map != Map || !InRange( combatant, 3 ) || !CanBeHarmful( combatant ) || !InLOS( combatant ) )
 				return;
 
-			m_NextAbilityTime = DateTime.Now + TimeSpan.FromSeconds( Utility.RandomMinMax( 5, 30 ) );
+			m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds( Utility.RandomMinMax( 5, 30 ) );
 
 			if ( Utility.RandomBool() )
 			{
@@ -148,7 +166,8 @@ namespace Server.Mobiles
 			}
 		}
 
-		public Betrayer( Serial serial ) : base( serial )
+		public Betrayer( Serial serial )
+			: base( serial )
 		{
 		}
 

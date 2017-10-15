@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Server;
 using Server.Items;
 using Server.Mobiles;
@@ -48,7 +48,9 @@ namespace Server.Factions
 
 	public class SBFactionOre : SBInfo
 	{
-		private ArrayList m_BuyInfo = new InternalBuyInfo();
+		private static readonly object[] m_FixedSizeArgs = { true };
+
+		private List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
 		private IShopSellInfo m_SellInfo = new InternalSellInfo();
 
 		public SBFactionOre()
@@ -56,14 +58,14 @@ namespace Server.Factions
 		}
 
 		public override IShopSellInfo SellInfo { get { return m_SellInfo; } }
-		public override ArrayList BuyInfo { get { return m_BuyInfo; } }
+		public override List<GenericBuyInfo> BuyInfo { get { return m_BuyInfo; } }
 
-		public class InternalBuyInfo : ArrayList
+		public class InternalBuyInfo : List<GenericBuyInfo>
 		{
 			public InternalBuyInfo()
 			{
 				for ( int i = 0; i < 5; ++i )
-					Add( new GenericBuyInfo( typeof( IronOre ), 16, 20, 0x19B8, 0 ) );
+					Add( new GenericBuyInfo( typeof( IronOre ), 16, 20, 0x19B8, 0, m_FixedSizeArgs ) );
 			}
 		}
 

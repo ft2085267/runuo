@@ -19,20 +19,36 @@
 			<!-- magincia -->
 			<rect x="3554" y="2132" width="18" height="18" />
 		</region>
+		<region type="GuardedRegion" priority="50" name="T2A Arena">
+			<!-- Minoc Cave Entrance -->
+			<rect x="2396" y="197" width="11" height="23" />
+			<!-- Minoc Cave Tunnel -->
+			<rect x="5717" y="428" width="38" height="28" />
+			<!-- T2A Arena -->
+			<rect x="6085" y="3674" width="23" height="24" />
+			<rect x="6063" y="3698" width="48" height="52" />
+			<go x="6103" y="3724" z="25" />
+		</region>
 		<!--Mondain's Legacy-->
-		<region type="TownRegion" priority="50" name="Heartwood">
+		<region type="TownRegion" priority="50" name="The Heartwood">
 			<rect x="6911" y="255" width="257" height="257" />
 			<go x="6984" y="337" z="0" />
 			<entrance x="535" y="995" />
 			<music name="ElfCity" />
 		</region>
-		<region type="DungeonRegion" priority="50" name="Painted Caves">
-			<rect x="6240" y="860" width="70" height="60" />
+		<region type="DungeonRegion" priority="50" name="Sanctuary">
+			<rect x="6144" y="0" width="255" height="255" />
+			<go x="6174" y="23" z="0" />
+			<music name="Dungeon9" />
+			<entrance x="762" y="1645" />
+		</region>
+		<region type="DungeonRegion" priority="50" name="The Painted Caves">
+			<rect x="6240" y="850" width="75" height="70" />
 			<go x="6308" y="892" z="-1" />
 			<entrance x="1716" y="892" />
 			<music name="Dungeon9" />
 		</region>
-		<region type="DungeonRegion" priority="50" name="Prism of Light">
+		<region type="DungeonRegion" priority="50" name="The Prism of Light">
 			<rect x="6400" y="0" width="221" height="255" />
 			<go x="6474" y="188" z="0" />
 			<entrance x="3784" y="1097" z="14" />
@@ -44,12 +60,17 @@
 			<entrance x="587" y="1641" z="-1" />
 			<music name="MelisandesLair" />
 		</region>
-		<region type="DungeonRegion" priority="50" name="Palace of Paroxysmus">
+		<region type="DungeonRegion" priority="50" name="The Palace of Paroxysmus">
 			<rect x="6191" y="311" width="370" height="360" />
 			<go x="6222" y="335" z="60" />
 			<entrance x="5574" y="3024" z="31" />
 			<music name="ParoxysmusLair" />
-				<zrange min="-50" />
+		</region>
+		<region priority="50" name="Bravehorn's drinking pool">
+			<rect x="1302" y="2331" width="38" height="22" />
+		</region>
+		<region priority="50" name="Huntsman's Forest">
+			<rect x="1595" y="550" width="120" height="120" />
 		</region>
 		<!--End-->
 		<region type="TownRegion" priority="50" name="Cove">
@@ -456,12 +477,6 @@
 				<logoutDelay active="false" />
 			</region>
 		</region>
-		<region type="DungeonRegion" priority="50" name="Sanctuary">
-			<rect x="6144" y="0" width="255" height="255" />
-			<go x="6174" y="23" z="0" />
-			<music name="Dungeon9" />
-			<entrance x="762" y="1645" />
-		</region>
 		<region type="DungeonRegion" priority="50" name="Covetous">
 			<rect x="5376" y="1793" width="201" height="255" />
 			<rect x="5576" y="1791" width="57" height="257" />
@@ -759,25 +774,25 @@
 			<rect x="3554" y="2132" width="18" height="18" />
 		</region>
 		<!--Mondain's Legacy-->
-		<region type="TownRegion" priority="50" name="Heartwood">
+		<region type="TownRegion" priority="50" name="The Heartwood">
 			<rect x="6911" y="255" width="257" height="257" />
 			<go x="6984" y="337" z="0" />
 			<entrance x="535" y="995" />
 			<music name="ElfCity" />
 		</region>
 		<region type="DungeonRegion" priority="50" name="Sanctuary">
-			<rect x="6157" y="4" width="242" height="251" />
-			<go x="6173" y="23" z="0" />
-			<entrance x="764" y="1646" />
+			<rect x="6144" y="0" width="255" height="255" />
+			<go x="6174" y="23" z="0" />
+			<entrance x="762" y="1645" />
 			<music name="Dungeon9" />
 		</region>
-		<region type="DungeonRegion" priority="50" name="Painted Caves">
-			<rect x="6240" y="860" width="70" height="60" />
+		<region type="DungeonRegion" priority="50" name="The Painted Caves">
+			<rect x="6240" y="850" width="75" height="70" />
 			<go x="6308" y="892" z="-1" />
 			<entrance x="1716" y="892" />
 			<music name="Dungeon9" />
 		</region>
-		<region type="DungeonRegion" priority="50" name="Prism of Light">
+		<region type="DungeonRegion" priority="50" name="The Prism of Light">
 			<rect x="6400" y="0" width="221" height="255" />
 			<go x="6474" y="188" z="0" />
 			<entrance x="3784" y="1097" z="14" />
@@ -789,17 +804,16 @@
 			<entrance x="587" y="1641" z="-1" />
 			<music name="MelisandesLair" />
 		</region>
-		<region type="DungeonRegion" priority="50" name="Palace of Paroxysmus">
+		<region type="DungeonRegion" priority="50" name="The Palace of Paroxysmus">
 			<rect x="6191" y="311" width="370" height="360" />
 			<go x="6222" y="335" z="60" />
 			<entrance x="5574" y="3024" z="31" />
 			<music name="ParoxysmusLair" />
-				<zrange min="-50" />
 		</region>
 		<region priority="50" name="Bravehorn's drinking pool">
 			<rect x="1302" y="2331" width="38" height="22" />
 		</region>
-		<region priority="50" name="Huntsman's forrest">
+		<region priority="50" name="Huntsman's Forest">
 			<rect x="1595" y="550" width="120" height="120" />
 		</region>
 		<!--End-->
@@ -962,18 +976,75 @@
 			<go x="3627" y="2606" z="0" />
 			<smartNoHousing active="true" />
 			<region type="GuardedRegion" name="New Haven Moongate">
-			<rect x="3446" y="2674" width="10" height="10" />
+				<rect x="3446" y="2674" width="10" height="10" />
 			</region>
 			<region type="TownRegion" name="New Haven">
-				<rune name="New Haven City" />
-				<rect x="3423" y="2480" width="111" height="143" />
+				<rune name="New Haven" />
+				<rect x="3416" y="2480" width="129" height="168" />
 				<go x="3503" y="2574" z="14" />
 				<music name="Ocllo" />
-				<region name="Gentle Rest Inn">
-					<rune name="The Gentle Rest Inn in New Haven" />
-					<rect x="3493" y="2513" width="10" height="10"/>
+				<region name="the New Haven Alchemist">
+					<!-- Note: OSI still uses the old rune names for all the shop regions -->
+					<rune name="The Little Shop of Alchemy in New Haven" />
+					<rect x="3457" y="2563" width="9" height="9" />
+				</region>
+				<region name="the New Haven Bard">
+					<rune name="the Bardic Guild in New Haven" />
+					<rect x="3410" y="2598" width="9" height="9" />
+					<rect x="3419" y="2599" width="2" height="7" />
+					<rect x="3408" y="2607" width="7" height="5" />
+				</region>
+				<region name="Warrior's Guild Hall">
+					<rune name="the Warrior Guild Hall in New Haven" />
+					<rect x="3520" y="2528" width="23" height="24" />
+					<rect x="3520" y="2552" width="14" height="11" />
+					<region name="the New Haven Warrior">
+						<rect x="3523" y="2546" width="6" height="16" />
+						<rect x="3529" y="2550" width="4" height="12" />
+					</region>
+					<region name="the New Haven Bowyer">
+						<rect x="3529" y="2531" width="12" height="19" />
+					</region>
+				</region>
+				<region name="the New Haven Tailor">
+					<rune name="A Stitch In Time in New Haven" />
+					<rect x="3492" y="2546" width="10" height="11" />
+					<rect x="3502" y="2546" width="3" height="4" />
+				</region>
+				<region name="the New Haven Carpenter">
+					<rune name="Carpenters of New Haven" />
+					<rect x="3439" y="2632" width="9" height="11" />
+					<rect x="3440" y="2643" width="7" height="5" />
+				</region>
+				<region name="the New Haven Mapmaker">
+					<rune name="Mapmakers of New Haven" />
+					<rect x="3490" y="2588" width="7" height="7" />
+				</region>
+				<region name="the New Haven Mage">
+					<rune name="New Haven Magery School" />
+					<rect x="3464" y="2488" width="27" height="16" />
+				</region>
+				<region name="the New Haven Inn">
+					<rune name="the Bountiful Harvest Inn in New Haven" />
+					<rect x="3493" y="2513" width="10" height="10" />
 					<rect x="3503" y="2513" width="7" height="17" />
 					<logoutDelay active="false" />
+				</region>
+				<!--
+				<region name="the New Haven Farm">
+					<rune name="" />
+					<rect />
+				</region>
+				-->
+				<region name="the New Haven Docks">
+					<rune name="the docks in New Haven" />
+					<rect x="3500" y="2592" width="8" height="25" />
+					<rect x="3508" y="2592" width="8" height="7" />
+					<rect x="3516" y="2592" width="8" height="16" />
+				</region>
+				<region name="the New Haven Bank">
+					<rune name="the First Bank of New Haven" />
+					<rect x="3479" y="2565" width="13" height="15" />
 				</region>
 			</region>
 			<!--
@@ -1743,7 +1814,7 @@
 			<entrance x="1450" y="1473" z="-23" />
 		</region>
 		<region priority="50" name="Sheep Farm">
-			<rect x="1303" y="1312" width="30" height="30" />
+			<rect x="1298" y="1307" width="38" height="37" />
 		</region>
 		<!--End-->
 		<region priority="37" name="Shrine of Valor">
@@ -2085,13 +2156,13 @@
 		</region>
 		<!--Mondain's Legacy-->
 		<region type="DungeonRegion" priority="50" name="Bedlam">
-			<rect x="80" y="1590" width="130" height="100" />
+			<rect x="75" y="1590" width="135" height="170" />
 			<go x="117" y="1681" z="0" />
 			<entrance x="2068" y="1372" z="-75" />
 			<music name="GrizzleDungeon" />
 		</region>
-		<region type="DungeonRegion" priority="50" name="Citadel">
-			<rect x="65" y="1865" width="130" height="125" />
+		<region type="DungeonRegion" priority="50" name="The Citadel">
+			<rect x="60" y="1855" width="135" height="135" />
 			<go x="106" y="1884" z="0" />
 			<entrance x="1349" y="769" z="14" />
 			<music name="Dungeon9" />

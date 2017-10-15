@@ -55,8 +55,8 @@ namespace Server.Mobiles
 				list.Add( "Donation Ethereal" );
 				list.Add( "7.5 sec slower cast time if not a 9mo. Veteran" );
 			}
-			if ( Core.ML && m_IsRewardItem )
-				list.Add( RewardSystem.GetRewardYearLabel( this, new object[]{ } ) ); // X Year Veteran Reward
+			if( Core.ML && m_IsRewardItem )
+				list.Add( RewardSystem.GetRewardYearLabel( this, new object[] { } ) ); // X Year Veteran Reward
 		}
 
 		[CommandProperty( AccessLevel.GameMaster )]
@@ -125,15 +125,15 @@ namespace Server.Mobiles
 		{
 			if( Parent == null )
 			{
-				from.SayTo( from,1010095 ); // This must be on your person to use.
+				from.SayTo( from, 1010095 ); // This must be on your person to use.
 				return false;
 			}
-			else if( m_IsRewardItem && !Engines.VeteranRewards.RewardSystem.CheckIsUsableBy( from, this, null ) )
+			else if( m_IsRewardItem && !RewardSystem.CheckIsUsableBy( from, this, null ) )
 			{
 				// CheckIsUsableBy sends the message
 				return false;
 			}
-			else if( !BaseMount.CheckMountAllowed( from, true ) )
+			else if( !BaseMount.CheckMountAllowed( from ) )
 			{
 				// CheckMountAllowed sends the message
 				return false;
@@ -153,7 +153,7 @@ namespace Server.Mobiles
 				from.SendLocalizedMessage( 1042317, "", 0x41 ); // You may not ride at this time
 				return false;
 			}
-			else if( (from.Followers + FollowerSlots) > from.FollowersMax )
+			else if( ( from.Followers + FollowerSlots ) > from.FollowersMax )
 			{
 				from.SendLocalizedMessage( 1049679 ); // You have too many followers to summon your mount.
 				return false;
@@ -171,6 +171,16 @@ namespace Server.Mobiles
 		{
 			if( Validate( from ) )
 				new EtherealSpell( this, from ).Cast();
+		}
+
+		public override void OnSingleClick( Mobile from )
+		{
+			base.OnSingleClick( from );
+
+			if ( m_IsDonationItem )
+				LabelTo( from, "Donation Ethereal" );
+			else
+				LabelTo( from, "Veteran Reward" );
 		}
 
 		public override void Serialize( GenericWriter writer )
@@ -197,27 +207,27 @@ namespace Server.Mobiles
 			switch( version )
 			{
 				case 3:
-					{
-						m_IsDonationItem = reader.ReadBool();
-						goto case 2;
-					}
+				{
+					m_IsDonationItem = reader.ReadBool();
+					goto case 2;
+				}
 				case 2:
-					{
-						m_IsRewardItem = reader.ReadBool();
-						goto case 0;
-					}
+				{
+					m_IsRewardItem = reader.ReadBool();
+					goto case 0;
+				}
 				case 1: reader.ReadInt(); goto case 0;
 				case 0:
-					{
-						m_MountedID = reader.ReadInt();
-						m_RegularID = reader.ReadInt();
-						m_Rider = reader.ReadMobile();
+				{
+					m_MountedID = reader.ReadInt();
+					m_RegularID = reader.ReadInt();
+					m_Rider = reader.ReadMobile();
 
-						if( m_MountedID == 0x3EA2 )
-							m_MountedID = 0x3EAA;
+					if( m_MountedID == 0x3EA2 )
+						m_MountedID = 0x3EAA;
 
-						break;
-					}
+					break;
+				}
 			}
 
 			AddFollowers();
@@ -336,7 +346,7 @@ namespace Server.Mobiles
 		public static void StopMounting( Mobile mob )
 		{
 			if( mob.Spell is EtherealSpell )
-				((EtherealSpell)mob.Spell).Stop();
+				( (EtherealSpell)mob.Spell ).Stop();
 		}
 
 		public void OnRiderDamaged( int amount, Mobile from, bool willKill )
@@ -371,7 +381,7 @@ namespace Server.Mobiles
 			{
 				get
 				{
-					return TimeSpan.FromSeconds( ((m_Mount.IsDonationItem && RewardSystem.GetRewardLevel( m_Rider ) < 3)? ( 7.5 + ( Core.AOS ? 3.0 : 2.0)) : ( Core.AOS ? 3.0 : 2.0)) );
+					return TimeSpan.FromSeconds( ( ( m_Mount.IsDonationItem && RewardSystem.GetRewardLevel( m_Rider ) < 3 ) ? ( 7.5 + ( Core.AOS ? 3.0 : 2.0 ) ) : ( Core.AOS ? 3.0 : 2.0 ) ) );
 				}
 			}
 
@@ -709,11 +719,13 @@ namespace Server.Mobiles
 		public override int EtherealHue { get { return 0; } }
 
 		[Constructable]
-		public RideablePolarBear() : base( 0x20E1, 0x3EC5 )
+		public RideablePolarBear()
+			: base( 0x20E1, 0x3EC5 )
 		{
 		}
 
-		public RideablePolarBear( Serial serial ) : base( serial )
+		public RideablePolarBear( Serial serial )
+			: base( serial )
 		{
 		}
 
@@ -730,18 +742,80 @@ namespace Server.Mobiles
 
 			int version = reader.ReadEncodedInt();
 		}
-	}	
+	}
 
 	public class EtherealCuSidhe : EtherealMount
 	{
 		public override int LabelNumber { get { return 1080386; } } // Ethereal Cu Sidhe Statuette
 
 		[Constructable]
-		public EtherealCuSidhe() : base( 0x2D96, 0x3E91 )
+		public EtherealCuSidhe()
+			: base( 0x2D96, 0x3E91 )
 		{
 		}
 
-		public EtherealCuSidhe( Serial serial ) : base( serial )
+		public EtherealCuSidhe( Serial serial )
+			: base( serial )
+		{
+		}
+
+		public override void Serialize( GenericWriter writer )
+		{
+			base.Serialize( writer );
+
+			writer.WriteEncodedInt( 0 ); // version
+		}
+
+		public override void Deserialize( GenericReader reader )
+		{
+			base.Deserialize( reader );
+
+			int version = reader.ReadEncodedInt();
+		}
+	}
+
+	public class EtherealHiryu : EtherealMount
+	{
+		public override int LabelNumber { get { return 1113813; } } // Ethereal Hiryu Statuette
+
+		[Constructable]
+		public EtherealHiryu()
+			: base( 0x276A, 0x3E94 )
+		{
+		}
+
+		public EtherealHiryu( Serial serial )
+			: base( serial )
+		{
+		}
+
+		public override void Serialize( GenericWriter writer )
+		{
+			base.Serialize( writer );
+
+			writer.WriteEncodedInt( 0 ); // version
+		}
+
+		public override void Deserialize( GenericReader reader )
+		{
+			base.Deserialize( reader );
+
+			int version = reader.ReadEncodedInt();
+		}
+	}
+
+	public class EtherealReptalon : EtherealMount
+	{
+		public override int LabelNumber { get { return 1113812; } } // Ethereal Reptalon Statuette
+
+		[Constructable]
+		public EtherealReptalon()
+			: base( 0x2d95, 0x3e90 )
+		{
+		}
+
+		public EtherealReptalon( Serial serial )
+			: base( serial )
 		{
 		}
 
@@ -789,6 +863,11 @@ namespace Server.Mobiles
 			base.Deserialize( reader );
 
 			int version = reader.ReadInt();
+
+			if( version <= 1 && Hue != 0 )
+			{
+				Hue = 0;
+			}
 		}
 	}
 }

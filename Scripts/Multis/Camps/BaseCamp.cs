@@ -13,14 +13,28 @@ namespace Server.Multis
 		private List<Mobile> m_Mobiles;
 		private DateTime m_DecayTime;
 		private Timer m_DecayTimer;
+		private TimeSpan m_DecayDelay;
 
 		public virtual int EventRange{ get{ return 10; } }
-		public virtual TimeSpan DecayDelay{ get{ return TimeSpan.FromMinutes( 30.0 ); } }
 
-		public BaseCamp( int multiID ) : base( multiID | 0x4000 )
+		public virtual TimeSpan DecayDelay
+		{
+			get
+			{
+				return m_DecayDelay;
+			} 
+			set
+			{
+				m_DecayDelay = value;
+				RefreshDecay( true );
+			} 
+		}
+
+		public BaseCamp( int multiID ) : base( multiID )
 		{
 			m_Items = new List<Item>();
 			m_Mobiles = new List<Mobile>();
+			m_DecayDelay = TimeSpan.FromMinutes( 30.0 );
 			RefreshDecay( true );
 
 			Timer.DelayCall( TimeSpan.Zero, new TimerCallback( CheckAddComponents ) );
@@ -47,7 +61,7 @@ namespace Server.Multis
 				m_DecayTimer.Stop();
 
 			if ( setDecayTime )
-				m_DecayTime = DateTime.Now + DecayDelay;
+				m_DecayTime = DateTime.UtcNow + DecayDelay;
 
 			m_DecayTimer = Timer.DelayCall( DecayDelay, new TimerCallback( Delete ) );
 		}
@@ -56,14 +70,16 @@ namespace Server.Multis
 		{
 			m_Items.Add( item );
 
-			item.MoveToWorld( new Point3D( X + xOffset, Y + yOffset, Z + zOffset ), Map );
+			int zavg = Map.GetAverageZ(X + xOffset, Y + yOffset);
+			item.MoveToWorld( new Point3D( X + xOffset, Y + yOffset, zavg + zOffset ), Map );
 		}
 
 		public virtual void AddMobile( Mobile m, int wanderRange, int xOffset, int yOffset, int zOffset )
 		{
-			m_Mobiles.Add( m );
+			m_Mobiles.Add(m);
 
-			Point3D loc = new Point3D( X + xOffset, Y + yOffset, Z + zOffset );
+			int zavg = Map.GetAverageZ(X + xOffset, Y + yOffset);
+			Point3D loc = new Point3D(X + xOffset, Y + yOffset, zavg + zOffset);
 			BaseCreature bc = m as BaseCreature;
 
 			if ( bc != null )
@@ -109,7 +125,14 @@ namespace Server.Multis
 				m_Items[i].Delete();
 
 			for ( int i = 0; i < m_Mobiles.Count; ++i )
-				m_Mobiles[i].Delete();
+			{
+				BaseCreature bc = (BaseCreature)m_Mobiles[i];
+
+				if ( bc.IsPrisoner == false )
+					m_Mobiles[i].Delete();
+				else if ( m_Mobiles[i].CantWalk == true )
+					m_Mobiles[i].Delete();
+			}
 
 			m_Items.Clear();
 			m_Mobiles.Clear();
@@ -149,6 +172,36 @@ namespace Server.Multis
 					break;
 				}
 			}
+		}
+	}
+
+	public class LockableBarrel : LockableContainer
+	{
+		[Constructable]
+		public LockableBarrel() : base(0xE77)
+		{
+			Weight = 1.0;
+		}
+
+		public LockableBarrel(Serial serial) : base(serial)
+		{
+		}
+
+		public override void Serialize(GenericWriter writer)
+		{
+			base.Serialize(writer);
+
+			writer.Write((int)0); // version
+		}
+
+		public override void Deserialize(GenericReader reader)
+		{
+			base.Deserialize(reader);
+
+			int version = reader.ReadInt();
+
+			if (Weight == 8.0)
+				Weight = 1.0;
 		}
 	}
 }

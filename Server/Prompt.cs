@@ -36,7 +36,7 @@ namespace Server.Prompts
 			}
 		}
 
-		public Prompt()
+		protected Prompt()
 		{
 			do
 			{
@@ -46,7 +46,7 @@ namespace Server.Prompts
 
 		public virtual void OnCancel( Mobile from )
 		{
-        }
+		}
 
 		public virtual void OnResponse( Mobile from, string text )
 		{

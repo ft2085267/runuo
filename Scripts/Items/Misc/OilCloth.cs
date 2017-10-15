@@ -61,15 +61,15 @@ namespace Server.Items
 			{
 				from.SendLocalizedMessage( 1042001 ); // That must be in your pack for you to use it.
 			}
+			else if ( obj is Item && ((Item)obj).RootParent != from )
+			{
+				from.SendLocalizedMessage( 1005425 ); // You may only wipe down items you are holding or carrying.
+			}
 			else if ( obj is BaseWeapon )
 			{
 				BaseWeapon weapon = (BaseWeapon)obj;
 
-				if ( weapon.RootParent != from )
-				{
-					from.SendLocalizedMessage( 1005425 ); // You may only wipe down items you are holding or carrying.
-				}
-				else if ( weapon.Poison == null || weapon.PoisonCharges <= 0 )
+				if ( weapon.Poison == null || weapon.PoisonCharges <= 0 )
 				{
 					from.LocalOverheadMessage( Network.MessageType.Regular, 0x3B2, 1005422 ); // Hmmmm... this does not need to be cleaned.
 				}
@@ -106,6 +106,27 @@ namespace Server.Items
 					from.LocalOverheadMessage( Network.MessageType.Regular, 0x3B2, 1005422 ); // Hmmmm... this does not need to be cleaned.
 				}
 			}
+			#region Firebomb
+			else if ( obj is BaseBeverage )
+			{
+				BaseBeverage beverage = (BaseBeverage) obj;
+
+				if ( beverage.Content == BeverageType.Liquor )
+				{
+					Firebomb bomb = new Firebomb( beverage.ItemID );
+					bomb.Name = beverage.Name;
+
+					beverage.ReplaceWith( bomb );
+
+					from.SendLocalizedMessage( 1060580 ); // You prepare a firebomb.
+					Consume();
+				}
+			}
+			else if ( obj is Firebomb )
+			{
+				from.SendLocalizedMessage( 1060579 ); // That is already a firebomb!
+			}
+			#endregion
 			else
 			{
 				from.SendLocalizedMessage( 1005426 ); // The cloth will not work on that.

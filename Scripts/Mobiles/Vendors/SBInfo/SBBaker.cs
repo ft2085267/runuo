@@ -1,12 +1,12 @@
 using System; 
-using System.Collections; 
+using System.Collections.Generic; 
 using Server.Items; 
 
 namespace Server.Mobiles 
 { 
 	public class SBBaker : SBInfo 
 	{ 
-		private ArrayList m_BuyInfo = new InternalBuyInfo(); 
+		private List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo(); 
 		private IShopSellInfo m_SellInfo = new InternalSellInfo(); 
 
 		public SBBaker() 
@@ -14,9 +14,9 @@ namespace Server.Mobiles
 		} 
 
 		public override IShopSellInfo SellInfo { get { return m_SellInfo; } } 
-		public override ArrayList BuyInfo { get { return m_BuyInfo; } } 
+		public override List<GenericBuyInfo> BuyInfo { get { return m_BuyInfo; } } 
 
-		public class InternalBuyInfo : ArrayList 
+		public class InternalBuyInfo : List<GenericBuyInfo> 
 		{ 
 			public InternalBuyInfo() 
 			{ 
@@ -27,7 +27,7 @@ namespace Server.Mobiles
 				Add( new GenericBuyInfo( typeof( Muffins ), 3, 20, 0x9EA, 0 ) );
 				Add( new GenericBuyInfo( typeof( SackFlour ), 3, 20, 0x1039, 0 ) );
 				Add( new GenericBuyInfo( typeof( FrenchBread ), 5, 20, 0x98C, 0 ) );
-             			Add( new GenericBuyInfo( typeof( Cookies ), 3, 20, 0x160b, 0 ) ); 
+				Add( new GenericBuyInfo( typeof( Cookies ), 3, 20, 0x160b, 0 ) ); 
 				Add( new GenericBuyInfo( typeof( CheesePizza ), 8, 10, 0x1040, 0 ) ); // OSI just has Pizza
 				Add( new GenericBuyInfo( typeof( JarHoney ), 3, 20, 0x9ec, 0 ) ); 
 				Add (new GenericBuyInfo( typeof( BowlFlour ), 7, 20, 0xA1E, 0 ) );

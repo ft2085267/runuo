@@ -176,7 +176,8 @@ namespace Server.Regions
 		{
 			BaseGuard useGuard = null;
 
-			foreach ( Mobile m in focus.GetMobilesInRange( 8 ) )
+			IPooledEnumerable eable = focus.GetMobilesInRange( 8 );
+			foreach ( Mobile m in  eable)
 			{
 				if ( m is BaseGuard )
 				{
@@ -189,6 +190,8 @@ namespace Server.Regions
 					}
 				}
 			}
+
+			eable.Free();
 
 			if ( useGuard == null )
 			{
@@ -345,7 +348,7 @@ namespace Server.Regions
 
 		public bool IsGuardCandidate( Mobile m )
 		{
-			if ( m is BaseGuard || !m.Alive || m.AccessLevel > AccessLevel.Player || m.Blessed || IsDisabled() )
+			if ( m is BaseGuard || !m.Alive || m.AccessLevel > AccessLevel.Player || m.Blessed || ( m is BaseCreature && ((BaseCreature)m).IsInvulnerable ) || IsDisabled() )
 				return false;
 
 			return (!AllowReds && m.Kills >= 5) || m.Criminal;

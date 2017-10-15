@@ -112,7 +112,7 @@ namespace Server.SkillHandlers
 
 			public override void OnDisturb( DisturbType type, bool message )
 			{
-				Caster.NextSkillTime = DateTime.Now;
+				Caster.NextSkillTime = Core.TickCount;
 
 				base.OnDisturb( type, message );
 			}
@@ -138,7 +138,7 @@ namespace Server.SkillHandlers
 
 				foreach ( Item item in Caster.GetItemsInRange( 3 ) )
 				{
-					if ( item is Corpse && !((Corpse)item).Channeled )
+					if( item is Corpse && !( (Corpse)item ).Channeled )
 					{
 						toChannel = (Corpse)item;
 						break;
